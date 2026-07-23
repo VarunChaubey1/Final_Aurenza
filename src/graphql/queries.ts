@@ -1,0 +1,213 @@
+export const PRODUCTS_GRAPHQL_QUERY = `
+  query getProducts($first: Int = 20, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {
+    products(first: $first, query: $query, sortKey: $sortKey, reverse: $reverse) {
+      edges {
+        node {
+          id
+          handle
+          title
+          description
+          descriptionHtml
+          vendor
+          productType
+          tags
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+            maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          compareAtPriceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          featuredImage {
+            id
+            url
+            altText
+            width
+            height
+          }
+          images(first: 6) {
+            edges {
+              node {
+                id
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                availableForSale
+                price {
+                  amount
+                  currencyCode
+                }
+                compareAtPrice {
+                  amount
+                  currencyCode
+                }
+                selectedOptions {
+                  name
+                  value
+                }
+                image {
+                  id
+                  url
+                  altText
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const PRODUCT_BY_HANDLE_QUERY = `
+  query getProductByHandle($handle: String!) {
+    productByHandle(handle: $handle) {
+      id
+      handle
+      title
+      description
+      descriptionHtml
+      vendor
+      productType
+      tags
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+        maxVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      featuredImage {
+        id
+        url
+        altText
+      }
+      images(first: 10) {
+        edges {
+          node {
+            id
+            url
+            altText
+          }
+        }
+      }
+      variants(first: 10) {
+        edges {
+          node {
+            id
+            title
+            availableForSale
+            price {
+              amount
+              currencyCode
+            }
+            compareAtPrice {
+              amount
+              currencyCode
+            }
+            selectedOptions {
+              name
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const COLLECTIONS_QUERY = `
+  query getCollections($first: Int = 10) {
+    collections(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+          description
+          image {
+            id
+            url
+            altText
+          }
+          products(first: 1) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const CART_CREATE_MUTATION = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart {
+        id
+        checkoutUrl
+        totalQuantity
+        lines(first: 50) {
+          edges {
+            node {
+              id
+              quantity
+              merchandise {
+                ... on ProductVariant {
+                  id
+                  title
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  product {
+                    id
+                    title
+                    handle
+                    featuredImage {
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        cost {
+          subtotalAmount {
+            amount
+            currencyCode
+          }
+          totalTaxAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+`;
