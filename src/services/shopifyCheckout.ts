@@ -29,7 +29,8 @@ export interface ShopifyCheckoutResponse {
 export async function createShopifyCheckout(
   cartItems: CartItem[],
   customDomain?: string,
-  customToken?: string
+  customToken?: string,
+  discountCode?: string
 ): Promise<ShopifyCheckoutResponse> {
   const domain = (customDomain || process.env.VITE_SHOPIFY_STORE_DOMAIN || '2ckvdk-eq.myshopify.com').replace(/^https?:\/\//, '').replace(/\/$/, '');
   const tokensToTry = [
@@ -50,12 +51,20 @@ export async function createShopifyCheckout(
   }));
 
   // Direct checkout URL construction fallback if store domain is provided
-  const directCartPermalink = `https://${domain}/cart/${cartItems.map(i => `${i.variantId.replace(/[^0-9]/g, '')}:${i.quantity}`).join(',')}`;
+  let directCartPermalink = `https://${domain}/cart/${cartItems.map(i => `${i.variantId.replace(/[^0-9]/g, '')}:${i.quantity}`).join(',')}`;
+  if (discountCode) {
+    directCartPermalink += `?discount=${encodeURIComponent(discountCode)}`;
+  }
 
   const endpoint = `https://${domain}/api/2024-01/graphql.json`;
 
   for (const token of tokensToTry) {
     try {
+      const inputObj: any = { lines };
+      if (discountCode) {
+        inputObj.discountCodes = [discountCode];
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -65,9 +74,7 @@ export async function createShopifyCheckout(
         body: JSON.stringify({
           query: CART_CREATE_MUTATION,
           variables: {
-            input: {
-              lines,
-            },
+            input: inputObj,
           },
         }),
       });
@@ -88,9 +95,13 @@ export async function createShopifyCheckout(
       }
 
       if (cartData?.cart?.checkoutUrl) {
+        let checkoutUrl = cartData.cart.checkoutUrl;
+        if (discountCode && !checkoutUrl.includes('discount=')) {
+          checkoutUrl += (checkoutUrl.includes('?') ? '&' : '?') + `discount=${encodeURIComponent(discountCode)}`;
+        }
         return {
           success: true,
-          checkoutUrl: cartData.cart.checkoutUrl,
+          checkoutUrl,
           cartId: cartData.cart.id,
         };
       }

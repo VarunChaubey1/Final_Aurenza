@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Truck, Check, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Truck, Check, Sparkles, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { createShopifyCheckout } from '../../services/shopifyCheckout';
 
 interface CartDrawerProps {
   onNavigateShop: () => void;
@@ -27,6 +28,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
 
   const [inputCode, setInputCode] = useState('');
   const [promoMessage, setPromptMessage] = useState<{ success?: boolean; text: string } | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   if (!isCartOpen) return null;
 
@@ -37,8 +39,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
     setPromptMessage({ success: res.success, text: res.message });
   };
 
-  const handleCheckout = () => {
-    openCheckout();
+  const handleCheckout = async () => {
+    setIsRedirecting(true);
+    try {
+      const res = await createShopifyCheckout(cart, undefined, undefined, discountCode);
+      if (res.success && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+      } else {
+        openCheckout();
+      }
+    } catch (e) {
+      console.error(e);
+      openCheckout();
+    } finally {
+      setIsRedirecting(false);
+    }
   };
 
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
@@ -235,10 +250,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
               <button
                 id="btn-cart-checkout"
                 onClick={handleCheckout}
-                className="w-full bg-[#D6A34A] text-[#1F1F1F] py-4 rounded-2xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-[#c4923b] shadow-lg transition-all"
+                disabled={isRedirecting}
+                className="w-full bg-[#D6A34A] text-[#1F1F1F] py-4 rounded-2xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-[#c4923b] shadow-lg transition-all disabled:opacity-75"
               >
-                <span>Proceed to Express Checkout</span>
-                <ArrowRight className="w-4 h-4" />
+                {isRedirecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#1F1F1F]" />
+                    <span>Redirecting to Secure Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceed to Express Checkout</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
 
               <div className="flex items-center justify-center gap-4 text-[10px] text-[#6B7280] uppercase tracking-wider">

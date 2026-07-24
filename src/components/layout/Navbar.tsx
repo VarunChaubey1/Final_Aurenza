@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Search, ShoppingBag, Heart, Menu, X, Sun, Moon, Sparkles, Store } from 'lucide-react';
+import { Search, ShoppingBag, Heart, Menu, X, Sun, Moon, Sparkles } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { useShop } from '../../context/ShopContext';
 
 interface NavbarProps {
   onOpenSearch: () => void;
@@ -12,7 +11,6 @@ interface NavbarProps {
   setActiveView: (view: 'home' | 'shop' | 'product-detail' | 'about' | 'ingredients') => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-  onOpenShopifyModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -23,11 +21,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveView,
   isDarkMode,
   onToggleDarkMode,
-  onOpenShopifyModal,
 }) => {
   const { totalQuantity, setIsCartOpen } = useCart();
   const { wishlistCount } = useWishlist();
-  const { isLiveShopify } = useShop();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -211,22 +207,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Icon Tools */}
         <div className="flex items-center gap-3 sm:gap-5">
-          {/* Shopify Sync Button */}
-          {onOpenShopifyModal && (
-            <button
-              onClick={onOpenShopifyModal}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 border transition-all ${
-                isLiveShopify
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700'
-                  : 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700'
-              }`}
-              title="Connect Shopify Storefront API"
-            >
-              <Store className="w-3.5 h-3.5 text-[#2F5D50] dark:text-[#D6A34A]" />
-              <span className="hidden md:inline">{isLiveShopify ? 'Shopify Connected' : 'Sync Shopify'}</span>
-            </button>
-          )}
-
           {/* Search Trigger */}
           <button
             id="btn-search-trigger"

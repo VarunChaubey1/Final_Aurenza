@@ -21,7 +21,6 @@ import { SearchModal } from './components/layout/SearchModal';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { CheckoutModal } from './components/cart/CheckoutModal';
 import { AboutPage } from './components/home/AboutPage';
-import { ShopifyStoreConnectModal } from './components/shopify/ShopifyStoreConnectModal';
 import { Product } from './types';
 
 export function AppContent() {
@@ -38,7 +37,6 @@ export function AppContent() {
   // Modal States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const [isShopifyModalOpen, setIsShopifyModalOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Sync Dark Mode class on html tag
@@ -84,7 +82,6 @@ export function AppContent() {
         setActiveView={setActiveView}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-        onOpenShopifyModal={() => setIsShopifyModalOpen(true)}
       />
 
       {/* Main Dynamic View Content */}
@@ -108,7 +105,7 @@ export function AppContent() {
             ) : (
               <div className="py-20 text-center bg-[#FFF9F4] dark:bg-[#121816] flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-bold text-[#2F5D50] dark:text-[#D6A34A] tracking-wider uppercase">Loading Live Shopify Storefront...</p>
+                <p className="text-sm font-bold text-[#2F5D50] dark:text-[#D6A34A] tracking-wider uppercase">Loading Aurenza Collection...</p>
               </div>
             )}
 
@@ -215,11 +212,6 @@ export function AppContent() {
         isOpen={isQuizOpen}
         onClose={() => setIsQuizOpen(false)}
         onSelectProduct={handleSelectProduct}
-      />
-
-      <ShopifyStoreConnectModal
-        isOpen={isShopifyModalOpen}
-        onClose={() => setIsShopifyModalOpen(false)}
       />
 
       <CartDrawer

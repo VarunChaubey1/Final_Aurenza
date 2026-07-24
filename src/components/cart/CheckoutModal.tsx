@@ -61,7 +61,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
   const grandTotal = finalTotal + shippingFee;
 
   // Payment Method
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'cod' | 'shopify'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'shopify' | 'upi' | 'card' | 'netbanking' | 'cod'>('shopify');
 
   // UPI State
   const [upiId, setUpiId] = useState('ananya@okicici');
@@ -80,11 +80,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
 
   // Shopify Integration State
-  const [shopifyDomain, setShopifyDomain] = useState(process.env.VITE_SHOPIFY_STORE_DOMAIN || '');
-  const [shopifyToken, setShopifyToken] = useState(process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '');
+  const shopifyDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN || '2ckvdk-eq.myshopify.com';
+  const shopifyToken = process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '';
   const [shopifyRedirecting, setShopifyRedirecting] = useState(false);
   const [shopifyError, setShopifyError] = useState<string | null>(null);
-  const [showShopifyConfig, setShowShopifyConfig] = useState(false);
 
   // Order Details post-checkout
   const [orderId, setOrderId] = useState('');
@@ -132,7 +131,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
     setShopifyRedirecting(true);
     setShopifyError(null);
 
-    const result = await createShopifyCheckout(cart, shopifyDomain, shopifyToken);
+    const result = await createShopifyCheckout(cart, shopifyDomain, shopifyToken, discountCode);
 
     if (result.success && result.checkoutUrl) {
       window.location.href = result.checkoutUrl;
@@ -161,19 +160,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
       return;
     }
 
-    if (paymentMethod === 'shopify') {
-      handleShopifyRedirect();
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      const randomOrderNum = `AUR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      setOrderId(randomOrderNum);
-      setIsSubmitting(false);
-      setStep(3);
-    }, 1800);
+    handleShopifyRedirect();
   };
 
   const handleFinishAndClose = () => {
@@ -213,20 +200,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
               </h2>
               <p className="text-[11px] text-[#2F5D50] dark:text-[#D6A34A] flex items-center gap-1 font-medium">
                 <Lock className="w-3 h-3" />
-                256-Bit Encrypted & Powered by Shopify Headless Backend
+                256-Bit SSL Encrypted Express Checkout
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowShopifyConfig(!showShopifyConfig)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#2F5D50]/20 text-[11px] font-semibold text-[#2F5D50] dark:text-[#D6A34A] hover:bg-[#2F5D50]/5"
-              title="Shopify Store Settings"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Shopify Backend Status</span>
-            </button>
             <button
               onClick={() => setIsCheckoutOpen(false)}
               className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-black/5"
@@ -235,49 +214,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onNavigateShop }) 
             </button>
           </div>
         </div>
-
-        {/* Optional Shopify Merchant Config Banner */}
-        {showShopifyConfig && (
-          <div className="bg-[#2F5D50]/10 dark:bg-[#2C3834] p-4 border-b border-[#2F5D50]/20 text-xs space-y-3 shrink-0">
-            <div className="flex items-center justify-between font-bold text-[#2F5D50] dark:text-[#D6A34A]">
-              <span className="flex items-center gap-1.5">
-                <ExternalLink className="w-4 h-4" />
-                Shopify Storefront API Settings (Headless Integration)
-              </span>
-              <button
-                onClick={() => setShowShopifyConfig(false)}
-                className="text-gray-500 hover:text-black dark:hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-[#6B7280] leading-relaxed">
-              This app is fully prepared to handle live orders on your Shopify store via Storefront GraphQL API. You can enter your domain and storefront token below or use the direct hosted checkout.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold mb-1">Shopify Store Domain</label>
-                <input
-                  type="text"
-                  placeholder="e.g. aurenza-beauty.myshopify.com"
-                  value={shopifyDomain}
-                  onChange={e => setShopifyDomain(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#2F5D50]/20 bg-white dark:bg-[#121816]"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold mb-1">Storefront Access Token</label>
-                <input
-                  type="password"
-                  placeholder="e.g. 5d9a... (Storefront API Key)"
-                  value={shopifyToken}
-                  onChange={e => setShopifyToken(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-[#2F5D50]/20 bg-white dark:bg-[#121816]"
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Checkout Steps Stepper */}
         {step !== 3 && (
