@@ -19,6 +19,7 @@ import { ProductDetailPage } from './components/product/ProductDetailPage';
 import { ProductQuickViewModal } from './components/product/ProductQuickViewModal';
 import { SearchModal } from './components/layout/SearchModal';
 import { CartDrawer } from './components/cart/CartDrawer';
+import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { CheckoutModal } from './components/cart/CheckoutModal';
 import { AboutPage } from './components/home/AboutPage';
 import { Product } from './types';
@@ -230,6 +231,14 @@ export function AppContent() {
           setActiveView('shop');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+      />
+
+      <WishlistDrawer
+        onNavigateShop={() => {
+          setActiveView('shop');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectProduct={handleSelectProduct}
       />
 
       <CheckoutModal

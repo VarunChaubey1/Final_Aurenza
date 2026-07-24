@@ -6,17 +6,24 @@ interface WishlistContextType {
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   wishlistCount: number;
+  isWishlistOpen: boolean;
+  setIsWishlistOpen: (open: boolean) => void;
+  clearWishlist: () => void;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [wishlist, setWishlist] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('aurenza_wishlist');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(item => item && typeof item === 'object' && typeof item.id === 'string');
+          }
         } catch (e) {
           console.error('Failed to parse wishlist', e);
         }
@@ -46,6 +53,10 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return wishlist.some(item => item.id === productId);
   };
 
+  const clearWishlist = () => {
+    setWishlist([]);
+  };
+
   return (
     <WishlistContext.Provider
       value={{
@@ -53,6 +64,9 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toggleWishlist,
         isInWishlist,
         wishlistCount: wishlist.length,
+        isWishlistOpen,
+        setIsWishlistOpen,
+        clearWishlist,
       }}
     >
       {children}

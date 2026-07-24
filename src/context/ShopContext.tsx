@@ -135,16 +135,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Wishlist persisted in localStorage if available
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('aurenza_wishlist');
-      return saved ? JSON.parse(saved) : ['gid://shopify/Product/101'];
+      const saved = localStorage.getItem('aurenza_wishlist_ids');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['gid://shopify/Product/101'];
+      return [];
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem('aurenza_wishlist', JSON.stringify(wishlist));
+      localStorage.setItem('aurenza_wishlist_ids', JSON.stringify(wishlist));
     } catch (e) {
       console.error(e);
     }

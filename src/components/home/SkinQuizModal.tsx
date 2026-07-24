@@ -10,6 +10,63 @@ interface SkinQuizModalProps {
   onSelectProduct: (product: Product) => void;
 }
 
+const QUIZ_DATA = {
+  Skin: {
+    concernQuestion: "What is your primary skin concern?",
+    concerns: [
+      "✨ Dullness & Dark Spots",
+      "🌿 Acne & Enlarged Pores",
+      "☀️ Sun Damage & Tanning",
+      "💧 Dehydration & Fine Lines",
+      "🍃 Rough Texture & Bumps",
+      "🌸 Redness & Barrier Sensitivity",
+    ],
+    profileQuestion: "What is your skin type?",
+    profiles: [
+      "Oily / Sebum Heavy",
+      "Dry & Flaky Skin",
+      "Combination (T-Zone Oily)",
+      "Sensitive / Easily Irritated",
+    ],
+  },
+  Hair: {
+    concernQuestion: "What is your primary hair & scalp concern?",
+    concerns: [
+      "🌱 Hair Fall & Hair Thinning",
+      "❄️ Dandruff & Scalp Itchiness",
+      "🌊 Frizz & Rough Cuticles",
+      "💧 Dry, Brittle Ends & Split Ends",
+      "🌿 Oily Roots & Heavy Flat Hair",
+      "🔥 Heat & Chemical Damage",
+    ],
+    profileQuestion: "What is your hair & scalp profile?",
+    profiles: [
+      "Dry & Flaky Scalp",
+      "Oily Scalp with Dry Ends",
+      "Normal / Balanced Hair",
+      "Sensitive & Irritated Scalp",
+    ],
+  },
+  Both: {
+    concernQuestion: "What is your combined skin & hair concern?",
+    concerns: [
+      "✨ Glowing Skin + Hair Growth",
+      "🌿 Acne Control + Scalp Detox",
+      "💧 Hydrated Skin + Frizz Control",
+      "☀️ Sun Repair + Damaged Strands",
+      "🌸 Sensitive Skin + Soothed Scalp",
+      "💎 Anti-Aging Face + Hair Density",
+    ],
+    profileQuestion: "What is your overall skin & scalp profile?",
+    profiles: [
+      "Combination Skin + Normal Scalp",
+      "Oily Skin + Oily Scalp",
+      "Dry Skin + Dry Scalp",
+      "Sensitive Skin + Sensitive Scalp",
+    ],
+  },
+};
+
 export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
   isOpen,
   onClose,
@@ -22,9 +79,15 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
   const { addToCart } = useCart();
   const [step, setStep] = useState(1);
   const [target, setTarget] = useState<'Skin' | 'Hair' | 'Both'>('Skin');
-  const [concern, setConcern] = useState<string>('Dullness & Dark Spots');
-  const [skinType, setSkinType] = useState<string>('Combination');
+  const [concern, setConcern] = useState<string>(QUIZ_DATA.Skin.concerns[0]);
+  const [skinType, setSkinType] = useState<string>(QUIZ_DATA.Skin.profiles[0]);
   const [addedBundle, setAddedBundle] = useState(false);
+
+  const handleSelectTarget = (t: 'Skin' | 'Hair' | 'Both') => {
+    setTarget(t);
+    setConcern(QUIZ_DATA[t].concerns[0]);
+    setSkinType(QUIZ_DATA[t].profiles[0]);
+  };
 
   const getRecommendedProducts = (): Product[] => {
     if (products.length === 0) return [];
@@ -36,7 +99,11 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
       const skinProds = products.filter((p) => p.category === 'Skin Care');
       return skinProds.length > 0 ? skinProds.slice(0, 2) : products.slice(0, 2);
     }
-    return products.slice(0, 2);
+    // For Both: Pick 1 Skin Care + 1 Hair Care
+    const skinProd = products.find((p) => p.category === 'Skin Care');
+    const hairProd = products.find((p) => p.category === 'Hair Care');
+    const combo = [skinProd, hairProd].filter(Boolean) as Product[];
+    return combo.length > 0 ? combo : products.slice(0, 2);
   };
 
   const recommendedList = getRecommendedProducts();
@@ -53,9 +120,11 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
   const handleReset = () => {
     setStep(1);
     setTarget('Skin');
-    setConcern('Dullness & Dark Spots');
-    setSkinType('Combination');
+    setConcern(QUIZ_DATA.Skin.concerns[0]);
+    setSkinType(QUIZ_DATA.Skin.profiles[0]);
   };
+
+  const currentQuizData = QUIZ_DATA[target];
 
   return (
     <div id="routine-quiz-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -98,7 +167,7 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
               {(['Skin', 'Hair', 'Both'] as const).map((t) => (
                 <button
                   key={t}
-                  onClick={() => setTarget(t)}
+                  onClick={() => handleSelectTarget(t)}
                   className={`p-5 rounded-2xl border text-center font-bold text-sm transition-all ${
                     target === t
                       ? 'border-[#2F5D50] bg-[#2F5D50] text-white shadow-md'
@@ -114,7 +183,7 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
               onClick={() => setStep(2)}
               className="w-full bg-[#D6A34A] text-[#1F1F1F] py-4 rounded-2xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-[#c4923b]"
             >
-              <span>Next Step</span>
+              <span>Next Step ({target} Care)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -123,16 +192,9 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
         {/* Step 2: Concern */}
         {step === 2 && (
           <div className="space-y-6">
-            <h4 className="text-lg font-serif font-bold">What is your main skin / hair concern?</h4>
+            <h4 className="text-lg font-serif font-bold">{currentQuizData.concernQuestion}</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                'Dullness & Dark Spots',
-                'Hair Fall & Thinning',
-                'Enlarged Pores & Acne',
-                'Sun Damage & Tanning',
-                'Frizz & Dry Cuticles',
-                'Dehydration & Fine Lines',
-              ].map((c) => (
+              {currentQuizData.concerns.map((c) => (
                 <button
                   key={c}
                   onClick={() => setConcern(c)}
@@ -168,9 +230,9 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
         {/* Step 3: Skin / Scalp Type */}
         {step === 3 && (
           <div className="space-y-6">
-            <h4 className="text-lg font-serif font-bold">What is your skin or scalp profile?</h4>
+            <h4 className="text-lg font-serif font-bold">{currentQuizData.profileQuestion}</h4>
             <div className="grid grid-cols-2 gap-3">
-              {['Oily / Shiny', 'Dry / Flaky', 'Combination', 'Sensitive'].map((st) => (
+              {currentQuizData.profiles.map((st) => (
                 <button
                   key={st}
                   onClick={() => setSkinType(st)}
@@ -208,7 +270,7 @@ export const SkinQuizModal: React.FC<SkinQuizModalProps> = ({
           <div className="space-y-6">
             <div className="bg-emerald-50 dark:bg-[#2C3834] p-4 rounded-2xl border border-emerald-200">
               <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-1">
-                Matched Clinical Regimen:
+                Matched Clinical Regimen ({target} Focus):
               </div>
               <p className="text-xs text-[#1F1F1F] dark:text-[#F3F4F6]">
                 Targeting <strong>{concern}</strong> for <strong>{skinType}</strong> profile.

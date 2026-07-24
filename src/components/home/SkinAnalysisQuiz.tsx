@@ -13,6 +13,57 @@ export const SkinAnalysisQuiz: React.FC = () => {
   const [texture, setTexture] = useState<string>('Light Serum');
   const [results, setResults] = useState<Product[] | null>(null);
 
+  const getTypesForTarget = () => {
+    if (targetArea === 'Hair') {
+      return ['Dry & Flaky Scalp', 'Oily Scalp & Flat Roots', 'Normal / Balanced Scalp', 'Sensitive / Irritated Scalp'];
+    }
+    if (targetArea === 'Both') {
+      return ['Combination Skin + Normal Scalp', 'Oily Skin + Oily Scalp', 'Dry Skin + Dry Scalp', 'Sensitive Skin + Sensitive Scalp'];
+    }
+    return ['Oily / Sebum Heavy', 'Dry / Tight', 'Combination', 'Sensitive / Reactive'];
+  };
+
+  const getConcernsForTarget = () => {
+    if (targetArea === 'Hair') {
+      return [
+        'Hair Loss & Thinning',
+        'Dandruff & Scalp Flakes',
+        'Frizz & Split Ends',
+        'Dry Cuticles & Dullness',
+        'Oily Roots & Flatness',
+        'Chemical & Heat Damage',
+      ];
+    }
+    if (targetArea === 'Both') {
+      return [
+        'Glowing Skin + Hair Growth',
+        'Acne Control + Scalp Detox',
+        'Hydrated Face + Frizz Control',
+        'Sun Repair + Damaged Strands',
+        'Sensitive Skin + Soothed Scalp',
+        'Anti-Aging + Hair Density',
+      ];
+    }
+    return [
+      'Dark Spots & Pigmentation',
+      'Acne & Enlarged Pores',
+      'Dullness & Lack of Glow',
+      'Dryness & Flakiness',
+      'Fine Lines & Aging',
+      'Redness & Sensitivity',
+    ];
+  };
+
+  const getTexturesForTarget = () => {
+    if (targetArea === 'Hair') {
+      return ['Nourishing Hair Oil', 'Volumizing Botanical Shampoo', 'Smoothing Hair Serum'];
+    }
+    if (targetArea === 'Both') {
+      return ['Face Serum + Hair Oil Duo', 'Face Wash + Shampoo Pair', 'Complete Botanical Active Set'];
+    }
+    return ['Fast Absorbing Water Serum', 'Rich Velvet Cream', 'Gentle Botanical Cleanser'];
+  };
+
   const handleCalculate = () => {
     let matched = products.filter(p => {
       if (targetArea === 'Skin' && p.category !== 'Skin Care') return false;
@@ -20,7 +71,15 @@ export const SkinAnalysisQuiz: React.FC = () => {
       return true;
     });
 
-    if (matched.length === 0) matched = products;
+    if (matched.length === 0) {
+      if (targetArea === 'Both') {
+        const s = products.find(p => p.category === 'Skin Care');
+        const h = products.find(p => p.category === 'Hair Care');
+        matched = [s, h].filter(Boolean) as Product[];
+      } else {
+        matched = products;
+      }
+    }
 
     setResults(matched.slice(0, 3));
     setStep(5);
@@ -85,14 +144,14 @@ export const SkinAnalysisQuiz: React.FC = () => {
             </div>
           )}
 
-          {/* Step 2: Skin Type */}
+          {/* Step 2: Skin/Scalp Type */}
           {step === 2 && (
             <div className="space-y-6 text-center animate-fadeIn">
               <h3 className="font-serif text-xl font-bold text-[#1F1F1F] dark:text-white">
-                2. How would you describe your skin/scalp type?
+                2. How would you describe your {targetArea === 'Hair' ? 'hair/scalp' : targetArea === 'Both' ? 'skin & scalp' : 'skin'} profile?
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-xl mx-auto">
-                {['Oily / Sebum Heavy', 'Dry / Tight', 'Combination', 'Sensitive / Reactive'].map(type => (
+                {getTypesForTarget().map(type => (
                   <button
                     key={type}
                     onClick={() => {
@@ -117,10 +176,10 @@ export const SkinAnalysisQuiz: React.FC = () => {
           {step === 3 && (
             <div className="space-y-6 text-center animate-fadeIn">
               <h3 className="font-serif text-xl font-bold text-[#1F1F1F] dark:text-white">
-                3. What is your #1 concern to address?
+                3. What is your #1 {targetArea === 'Hair' ? 'hair/scalp' : targetArea === 'Both' ? 'skin & hair' : 'skin'} concern?
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-xl mx-auto">
-                {['Dark Spots & Pigmentation', 'Hair Loss & Thinning', 'Acne & Enlarged Pores', 'Dullness & Lack of Glow', 'Dryness & Flakiness', 'Fine Lines & Aging'].map(conc => (
+                {getConcernsForTarget().map(conc => (
                   <button
                     key={conc}
                     onClick={() => {
@@ -145,10 +204,10 @@ export const SkinAnalysisQuiz: React.FC = () => {
           {step === 4 && (
             <div className="space-y-6 text-center animate-fadeIn">
               <h3 className="font-serif text-xl font-bold text-[#1F1F1F] dark:text-white">
-                4. What texture do you prefer?
+                4. What product texture / formula do you prefer?
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-lg mx-auto">
-                {['Fast Absorbing Water Serum', 'Rich Velvet Cream', 'Non-Sticky Hair Oil'].map(tex => (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto">
+                {getTexturesForTarget().map(tex => (
                   <button
                     key={tex}
                     onClick={() => {
@@ -170,13 +229,13 @@ export const SkinAnalysisQuiz: React.FC = () => {
             <div className="space-y-8 animate-fadeIn">
               <div className="text-center">
                 <span className="text-xs font-bold text-[#D6A34A] uppercase tracking-widest block mb-1">
-                  Custom Diagnostics Complete
+                  Custom Diagnostics Complete ({targetArea} Focus)
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-[#2F5D50] dark:text-white">
                   Your Personalized Prescribed Regimen
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tailored for {skinType} skin targeting {concern}.
+                  Tailored for {skinType} targeting {concern}.
                 </p>
               </div>
 

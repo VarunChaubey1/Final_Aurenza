@@ -23,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleDarkMode,
 }) => {
   const { totalQuantity, setIsCartOpen } = useCart();
-  const { wishlistCount } = useWishlist();
+  const { wishlistCount, setIsWishlistOpen } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -62,6 +62,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Desktop Navigation */}
         <nav id="desktop-nav" className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-[#1F1F1F]/80 dark:text-[#F3F4F6]/80">
+          <button
+            id="nav-home"
+            onClick={() => handleNavClick('home')}
+            className={`hover:text-[#D6A34A] transition-colors relative py-2 ${
+              activeView === 'home' ? 'text-[#2F5D50] dark:text-[#D6A34A] font-bold' : ''
+            }`}
+          >
+            Home
+          </button>
+
           <button
             id="nav-shop-all"
             onClick={() => handleNavClick('shop')}
@@ -230,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Wishlist Button */}
           <button
             id="btn-wishlist-trigger"
-            onClick={() => handleNavClick('shop')}
+            onClick={() => setIsWishlistOpen(true)}
             className="relative p-2 text-[#1F1F1F] dark:text-[#F3F4F6] hover:text-[#2F5D50] dark:hover:text-[#D6A34A] transition-colors"
             title="Wishlist"
           >
@@ -258,6 +268,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div id="mobile-navigation-menu" className="lg:hidden border-t border-[#2F5D50]/10 bg-[#FFF9F4] dark:bg-[#1B2320] px-6 py-6 space-y-4">
+          <button
+            onClick={() => handleNavClick('home')}
+            className={`block w-full text-left py-2 text-sm font-semibold uppercase tracking-wider ${
+              activeView === 'home' ? 'text-[#2F5D50] dark:text-[#D6A34A] font-bold' : 'text-[#1F1F1F] dark:text-[#F3F4F6]'
+            }`}
+          >
+            Home
+          </button>
           <button
             onClick={() => handleNavClick('shop')}
             className="block w-full text-left py-2 text-sm font-semibold uppercase tracking-wider text-[#1F1F1F] dark:text-[#F3F4F6]"
