@@ -41,7 +41,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       category: 'Hair Care',
       tagline: 'Root Strengthening Elixirs',
       itemCount: 'Rosemary, Biotin & Onion Seeds',
-      image: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=800&q=80',
+      image: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 'cat_shampoo',
@@ -88,6 +88,9 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
                 src={cat.image}
                 alt={cat.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80';
+                }}
               />
 
               {/* Gradient Dark Overlay */}

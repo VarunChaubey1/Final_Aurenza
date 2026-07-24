@@ -174,7 +174,7 @@ export function transformShopifyProduct(node: any): Product {
     featuredImage: featuredImg,
     images: imagesList,
     variants: variantsList,
-    rating: 4.8 + Math.round((node.title.length % 3) * 0.1 * 10) / 10,
+    rating: Number((4.8 + ((node.title.length % 3) * 0.1)).toFixed(1)),
     reviewsCount: 45 + (node.title.length * 4) % 150,
     ingredients: {
       keyActives: tagsArr.length > 0 ? tagsArr.slice(0, 3) : ['Botanical Actives', 'Hyaluronic Acid'],

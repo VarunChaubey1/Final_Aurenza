@@ -37,7 +37,13 @@ export function AppContent() {
   // Modal States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('aurenza_dark_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Sync Dark Mode class on html tag
   useEffect(() => {
@@ -45,6 +51,11 @@ export function AppContent() {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('aurenza_dark_mode', String(isDarkMode));
+    } catch (e) {
+      console.error(e);
     }
   }, [isDarkMode]);
 

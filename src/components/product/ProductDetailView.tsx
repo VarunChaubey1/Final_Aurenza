@@ -128,7 +128,7 @@ export const ProductDetailView: React.FC = () => {
                 </span>
                 <div className="flex items-center gap-1.5 text-[#D6A34A] text-sm font-bold">
                   <Star className="w-4 h-4 fill-current" />
-                  <span className="text-gray-900 dark:text-white">{product.rating}</span>
+                  <span className="text-gray-900 dark:text-white">{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating}</span>
                   <span className="text-gray-400 text-xs">({product.reviewsCount} reviews)</span>
                 </div>
               </div>

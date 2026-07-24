@@ -56,6 +56,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           alt={product.featuredImage.altText || product.title}
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80';
+          }}
         />
 
         {/* Badges Container */}
@@ -117,7 +120,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
             <div className="flex items-center gap-1 text-[#D6A34A] font-semibold text-[11px]">
               <Star className="w-3.5 h-3.5 fill-[#D6A34A]" />
-              <span>{product.rating}</span>
+              <span>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating}</span>
               <span className="text-[#6B7280] dark:text-[#9CA3AF]">
                 ({product.reviewsCount})
               </span>

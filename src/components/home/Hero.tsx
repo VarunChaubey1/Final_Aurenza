@@ -136,7 +136,7 @@ export const Hero: React.FC<HeroProps> = ({
                     <Star key={i} className="w-4 h-4 fill-[#D6A34A]" />
                   ))}
                   <span className="text-white/70 text-xs ml-2 font-sans font-bold">
-                    ({featuredProduct.rating || 4.9}/5 • {featuredProduct.reviewsCount || 120}+ Reviews)
+                    ({typeof featuredProduct.rating === 'number' ? Number(featuredProduct.rating).toFixed(1) : (featuredProduct.rating || 4.9)}/5 • {featuredProduct.reviewsCount || 120}+ Reviews)
                   </span>
                 </div>
 

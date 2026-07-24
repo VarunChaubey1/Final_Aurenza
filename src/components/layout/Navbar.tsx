@@ -297,7 +297,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             About Aurenza
           </button>
 
-          <div className="pt-4 border-t border-[#2F5D50]/10">
+          <div className="pt-4 border-t border-[#2F5D50]/10 space-y-3">
+            <button
+              onClick={() => {
+                onToggleDarkMode();
+              }}
+              className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-[#2C3834] text-xs font-bold text-[#1F1F1F] dark:text-[#F3F4F6] transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                {isDarkMode ? <Sun className="w-4 h-4 text-[#D6A34A]" /> : <Moon className="w-4 h-4" />}
+                {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              </span>
+              <span className="text-[10px] uppercase font-bold text-[#D6A34A]">
+                {isDarkMode ? 'Active' : 'Active'}
+              </span>
+            </button>
+
             <button
               onClick={() => {
                 onOpenQuiz();

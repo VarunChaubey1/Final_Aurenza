@@ -176,7 +176,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <span>{product.subcategory}</span>
                 <div className="flex items-center gap-1 text-[#D6A34A]">
                   <Star className="w-4 h-4 fill-[#D6A34A]" />
-                  <span>{product.rating}</span>
+                  <span>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating}</span>
                   <span className="text-[#6B7280]">({localReviews.length + product.reviewsCount} Reviews)</span>
                 </div>
               </div>
@@ -377,7 +377,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     
                     {/* Add Review Button */}
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-[#6B7280]">Average Rating: <strong>{product.rating} / 5</strong></span>
+                      <span className="text-xs text-[#6B7280]">Average Rating: <strong>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating} / 5</strong></span>
                       <button
                         onClick={() => setShowReviewForm(!showReviewForm)}
                         className="text-xs bg-[#2F5D50] text-white px-3 py-1.5 rounded-xl font-bold uppercase tracking-wider flex items-center gap-1.5"

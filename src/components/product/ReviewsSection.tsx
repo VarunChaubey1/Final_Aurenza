@@ -57,7 +57,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ reviews = [], ra
                 <Star key={i} className="w-5 h-5 fill-current" />
               ))}
             </div>
-            <span className="font-bold text-lg text-gray-800 dark:text-gray-200">{rating} out of 5</span>
+            <span className="font-bold text-lg text-gray-800 dark:text-gray-200">{typeof rating === 'number' ? Number(rating).toFixed(1) : rating} out of 5</span>
             <span className="text-gray-400 text-xs">({reviewsCount} total ratings)</span>
           </div>
         </div>

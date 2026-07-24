@@ -31,7 +31,7 @@ export const MOCK_PRODUCTS: Product[] = [
       },
       {
         id: 'img_1_2',
-        url: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=1000&q=80',
+        url: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=1000&q=80',
         altText: 'Serum Dropper Texture',
       },
       {
@@ -238,13 +238,13 @@ export const MOCK_PRODUCTS: Product[] = [
     },
     featuredImage: {
       id: 'img_4_1',
-      url: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=1000&q=80',
+      url: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=1000&q=80',
       altText: 'Aurenza Rosemary Hair Oil',
     },
     images: [
       {
         id: 'img_4_1',
-        url: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=1000&q=80',
+        url: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=1000&q=80',
         altText: 'Rosemary Hair Oil Bottle',
       },
       {
@@ -552,7 +552,7 @@ export const MOCK_COLLECTIONS: Collection[] = [
     description: 'High-potency Rosemary, Biotin, and Keratin formulations for strong, luxurious hair.',
     image: {
       id: 'img_coll_2',
-      url: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=1000&q=80',
+      url: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=1000&q=80',
       altText: 'Aurenza Hair Care Collection',
     },
     productsCount: 3,
@@ -624,7 +624,7 @@ export const KEY_INGREDIENTS: IngredientSpotlight[] = [
     benefits: ['Follicle Stimulation', 'Thicker Hair Regrowth', 'Scalp Health'],
     category: 'Hair Botanical',
     suitableFor: 'Thinning & Falling Hair',
-    image: 'https://images.unsplash.com/photo-1608248597261-82d2427a1478?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1608248597369-23c2d43a6d71?auto=format&fit=crop&w=600&q=80',
     recommendedProductHandles: ['rosemary-biotin-hair-growth-oil', 'onion-rosemary-anti-hairfall-serum'],
   },
   {
