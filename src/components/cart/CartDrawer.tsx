@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Check, Sparkles, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { createShopifyCheckout } from '../../services/shopifyCheckout';
 
 interface CartDrawerProps {
@@ -25,6 +26,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
     amountNeededForFreeShipping,
     openCheckout,
   } = useCart();
+  const { user, openAuthModal } = useAuth();
 
   const [inputCode, setInputCode] = useState('');
   const [promoMessage, setPromptMessage] = useState<{ success?: boolean; text: string } | null>(null);
@@ -39,20 +41,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
     setPromptMessage({ success: res.success, text: res.message });
   };
 
-  const handleCheckout = async () => {
-    setIsRedirecting(true);
-    try {
-      const res = await createShopifyCheckout(cart, undefined, undefined, discountCode);
-      if (res.success && res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-      } else {
-        openCheckout();
-      }
-    } catch (e) {
-      console.error(e);
+  const handleCheckout = () => {
+    setIsCartOpen(false);
+    if (!user) {
+      openAuthModal('login');
+    } else {
       openCheckout();
-    } finally {
-      setIsRedirecting(false);
     }
   };
 

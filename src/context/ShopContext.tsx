@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, ProductVariant, CartItem, Cart } from '../types';
+import { Product, ProductVariant, CartItem, Cart, Collection } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
-import { getProducts, getStoredShopifyCredentials, saveShopifyCredentials } from '../services/shopify';
+import { getProducts, getCollections, getStoredShopifyCredentials, saveShopifyCredentials } from '../services/shopify';
 
 interface ToastMessage {
   id: string;
@@ -20,6 +20,7 @@ interface ShopContextType {
   
   // Shopify Products & Integration
   products: Product[];
+  collections: Collection[];
   loadingProducts: boolean;
   isLiveShopify: boolean;
   shopifyDomain: string;
@@ -82,21 +83,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shopifyDomain, setShopifyDomain] = useState<string>(initialCreds.domain);
   const [shopifyToken, setShopifyToken] = useState<string>(initialCreds.token);
   const [products, setProducts] = useState<Product[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [isLiveShopify, setIsLiveShopify] = useState<boolean>(false);
 
   const fetchShopifyProducts = async (domain = shopifyDomain, token = shopifyToken) => {
     setLoadingProducts(true);
     try {
-      const result = await getProducts({
-        first: 50,
-        customDomain: domain,
-        customToken: token,
-      });
-      setProducts(result.products);
-      setIsLiveShopify(result.isLiveShopify);
+      const [prodResult, colsResult] = await Promise.all([
+        getProducts({
+          first: 50,
+          customDomain: domain,
+          customToken: token,
+        }),
+        getCollections(domain, token)
+      ]);
+
+      setProducts(prodResult.products);
+      setCollections(colsResult);
+      setIsLiveShopify(prodResult.isLiveShopify);
     } catch (err) {
-      console.error('Error fetching Shopify products:', err);
+      console.error('Error fetching Shopify products/collections:', err);
       setProducts([]);
       setIsLiveShopify(false);
     } finally {
@@ -319,6 +326,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectedCategory,
         setSelectedCategory,
         products,
+        collections,
         loadingProducts,
         isLiveShopify,
         shopifyDomain,

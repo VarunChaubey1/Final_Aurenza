@@ -33,10 +33,16 @@ export async function createShopifyCheckout(
   discountCode?: string
 ): Promise<ShopifyCheckoutResponse> {
   const domain = (customDomain || process.env.VITE_SHOPIFY_STORE_DOMAIN || '2ckvdk-eq.myshopify.com').replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const tokensToTry = [
-    customToken || process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.VITE_SHOPIFY_STOREFRONT_TOKEN || '441155a370abc67d0d0729b8b01b700d',
-    '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'
-  ].filter((t, i, arr) => t && arr.indexOf(t) === i);
+  const rawTokens = [
+    customToken,
+    process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+    process.env.VITE_SHOPIFY_STOREFRONT_TOKEN,
+    '441155a370abc67d0d0729b8b01b700d'
+  ];
+
+  const tokensToTry = rawTokens
+    .filter((t): t is string => Boolean(t && t.trim() && !t.startsWith('shpat_')))
+    .filter((t, i, arr) => arr.indexOf(t) === i);
 
   if (cartItems.length === 0) {
     return { success: false, error: 'Cart is empty' };

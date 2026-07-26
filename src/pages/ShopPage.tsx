@@ -33,10 +33,14 @@ export const ShopPage: React.FC = () => {
     let result = [...products];
 
     if (filter.category !== 'All') {
+      const catLower = filter.category.toLowerCase().replace(/[^a-z0-9]/g, '');
       result = result.filter(
         p =>
-          p.category.toLowerCase().includes(filter.category.toLowerCase()) ||
-          p.subcategory.toLowerCase().includes(filter.category.toLowerCase())
+          p.category.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.subcategory.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.title.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.productType.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.tags.some(t => t.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower))
       );
     }
 

@@ -1,21 +1,36 @@
 import { MOCK_PRODUCTS, MOCK_COLLECTIONS } from '../data/mockProducts';
 import { Product, Collection, ShopifyImage, ProductVariant } from '../types';
-import { PRODUCTS_GRAPHQL_QUERY, PRODUCT_BY_HANDLE_QUERY, COLLECTIONS_QUERY } from '../graphql/queries';
+import { 
+  PRODUCTS_GRAPHQL_QUERY, 
+  PRODUCT_BY_HANDLE_QUERY, 
+  COLLECTIONS_QUERY,
+  CUSTOMER_CREATE_MUTATION,
+  CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION,
+  CUSTOMER_QUERY 
+} from '../graphql/queries';
+
+export const DEFAULT_STOREFRONT_TOKEN = '441155a370abc67d0d0729b8b01b700d';
+export const DEFAULT_STORE_DOMAIN = '2ckvdk-eq.myshopify.com';
 
 export function getStoredShopifyCredentials() {
-  const domain =
-    (typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_domain') : null) ||
-    process.env.VITE_SHOPIFY_STORE_DOMAIN ||
-    '2ckvdk-eq.myshopify.com';
-  const token =
-    (typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_token') : null) ||
-    process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
-    process.env.VITE_SHOPIFY_STOREFRONT_TOKEN ||
-    '441155a370abc67d0d0729b8b01b700d';
-  return { domain, token };
-}
+  let domain = typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_domain') : null;
+  let token = typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_token') : null;
 
-export const BACKUP_SHOPIFY_TOKEN = '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';
+  if (!domain || !domain.trim()) {
+    domain =
+      (typeof process !== 'undefined' && process.env?.VITE_SHOPIFY_STORE_DOMAIN) ||
+      DEFAULT_STORE_DOMAIN;
+  }
+
+  // Filter out invalid shpat_ tokens for Storefront API calls
+  if (!token || !token.trim() || token.startsWith('shpat_')) {
+    token =
+      (typeof process !== 'undefined' && process.env?.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN) ||
+      DEFAULT_STOREFRONT_TOKEN;
+  }
+
+  return { domain: domain.trim(), token: token.trim() };
+}
 
 export function saveShopifyCredentials(domain: string, token: string) {
   if (typeof window !== 'undefined') {
@@ -40,9 +55,17 @@ export async function shopifyFetch<T>({
 }): Promise<T | null> {
   const creds = getStoredShopifyCredentials();
   const domain = (customDomain || creds.domain).replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const tokensToTry = [customToken || creds.token, BACKUP_SHOPIFY_TOKEN].filter(
-    (t, i, arr) => t && arr.indexOf(t) === i
-  );
+  
+  // Collect candidate tokens, ensuring shpat_ tokens are excluded from Storefront headers
+  const rawTokens = [
+    customToken,
+    creds.token,
+    DEFAULT_STOREFRONT_TOKEN
+  ];
+
+  const tokensToTry = rawTokens
+    .filter((t): t is string => Boolean(t && t.trim() && !t.startsWith('shpat_')))
+    .filter((t, i, arr) => arr.indexOf(t) === i);
 
   if (!domain || tokensToTry.length === 0) {
     return null;
@@ -141,19 +164,22 @@ export function transformShopifyProduct(node: any): Product {
     productType.toLowerCase().includes('hair') ||
     tagsArr.some(t => t.toLowerCase().includes('hair')) ||
     node.title.toLowerCase().includes('shampoo') ||
-    node.title.toLowerCase().includes('hair')
+    node.title.toLowerCase().includes('hair') ||
+    node.title.toLowerCase().includes('scalp') ||
+    node.title.toLowerCase().includes('oil')
   ) {
     category = 'Hair Care';
   }
 
   let subcategory: any = 'Face Serum';
-  const lowerTitle = node.title.toLowerCase();
-  if (lowerTitle.includes('wash') || lowerTitle.includes('cleanser')) subcategory = 'Face Wash';
+  const lowerTitle = (node.title + ' ' + productType + ' ' + tagsArr.join(' ')).toLowerCase();
+  if (lowerTitle.includes('wash') || lowerTitle.includes('cleanser') || lowerTitle.includes('facewash')) subcategory = 'Face Wash';
   else if (lowerTitle.includes('serum') && category === 'Skin Care') subcategory = 'Face Serum';
-  else if (lowerTitle.includes('sunscreen') || lowerTitle.includes('spf')) subcategory = 'Sunscreen';
-  else if (lowerTitle.includes('moisturizer') || lowerTitle.includes('cream')) subcategory = 'Moisturizer';
+  else if (lowerTitle.includes('sunscreen') || lowerTitle.includes('spf') || lowerTitle.includes('sun')) subcategory = 'Sunscreen';
+  else if (lowerTitle.includes('moisturizer') || lowerTitle.includes('cream') || lowerTitle.includes('lotion')) subcategory = 'Moisturizer';
   else if (lowerTitle.includes('shampoo')) subcategory = 'Shampoo';
   else if (lowerTitle.includes('oil')) subcategory = 'Hair Oil';
+  else if (lowerTitle.includes('hair') && lowerTitle.includes('serum')) subcategory = 'Hair Serum';
 
   return {
     id: node.id,
@@ -215,14 +241,20 @@ export async function getProducts(options?: {
       filtered = filtered.filter(
         p =>
           p.category.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
-          p.subcategory.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower)
+          p.subcategory.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.title.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.productType.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
+          p.tags.some(t => t.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower))
       );
     }
 
-    return { products: filtered, isLiveShopify: true };
+    if (liveProducts.length > 0) {
+      return { products: filtered, isLiveShopify: true };
+    }
   }
 
-  return { products: [], isLiveShopify: false };
+  // Fallback to MOCK_PRODUCTS if Shopify returns empty or fails
+  return { products: MOCK_PRODUCTS, isLiveShopify: false };
 }
 
 export async function getProductByHandle(
@@ -244,7 +276,134 @@ export async function getProductByHandle(
   return null;
 }
 
-export async function getCollections(): Promise<Collection[]> {
+export async function getCollections(
+  customDomain?: string,
+  customToken?: string
+): Promise<Collection[]> {
+  try {
+    const data = await shopifyFetch<any>({
+      query: COLLECTIONS_QUERY,
+      variables: { first: 20 },
+      customDomain,
+      customToken,
+    });
+
+    if (data && data.collections?.edges && data.collections.edges.length > 0) {
+      const liveCollections: Collection[] = data.collections.edges.map((e: any) => {
+        const node = e.node;
+        const productsCount = node.products?.edges?.length || 0;
+        return {
+          id: node.id,
+          handle: node.handle,
+          title: node.title,
+          description: node.description || 'Pure botanical formulation collection engineered for transformative results.',
+          image: node.image
+            ? {
+                id: node.image.id || 'col-img',
+                url: node.image.url,
+                altText: node.image.altText || node.title,
+              }
+            : undefined,
+          productsCount: productsCount > 0 ? productsCount : 5,
+        };
+      });
+      return liveCollections;
+    }
+  } catch (err) {
+    console.error('Failed fetching collections from Shopify:', err);
+  }
+
   return MOCK_COLLECTIONS;
 }
+
+export async function createShopifyCustomer(input: {
+  email: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}) {
+  try {
+    // Format phone to E.164 standard if valid, otherwise omit to avoid Shopify validation errors
+    let formattedPhone: string | undefined = undefined;
+    if (input.phone) {
+      const cleanDigits = input.phone.replace(/\D/g, '');
+      if (cleanDigits.length >= 10) {
+        formattedPhone = input.phone.startsWith('+') 
+          ? input.phone 
+          : `+91${cleanDigits.slice(-10)}`;
+      }
+    }
+
+    const data = await shopifyFetch<any>({
+      query: CUSTOMER_CREATE_MUTATION,
+      variables: {
+        input: {
+          email: input.email,
+          password: input.password || 'Aurenza#2026',
+          firstName: input.firstName || 'Customer',
+          lastName: input.lastName || '',
+          phone: formattedPhone,
+        },
+      },
+    });
+
+    if (data?.customerCreate?.customerUserErrors?.length > 0) {
+      const errs = data.customerCreate.customerUserErrors;
+      console.warn('Shopify Customer Creation Notice:', errs);
+      return { success: false, errors: errs, message: errs[0].message };
+    }
+
+    if (data?.customerCreate?.customer) {
+      return { success: true, customer: data.customerCreate.customer };
+    }
+  } catch (err) {
+    console.error('Failed creating customer in Shopify:', err);
+  }
+  return { success: false, message: 'Could not create Shopify customer' };
+}
+
+export async function loginShopifyCustomer(email: string, password?: string) {
+  try {
+    const data = await shopifyFetch<any>({
+      query: CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION,
+      variables: {
+        input: {
+          email,
+          password: password || 'Aurenza#2026',
+        },
+      },
+    });
+
+    if (data?.customerAccessTokenCreate?.customerUserErrors?.length > 0) {
+      const errs = data.customerAccessTokenCreate.customerUserErrors;
+      return { success: false, errors: errs, message: errs[0].message };
+    }
+
+    const tokenObj = data?.customerAccessTokenCreate?.customerAccessToken;
+    if (tokenObj?.accessToken) {
+      return { success: true, accessToken: tokenObj.accessToken, expiresAt: tokenObj.expiresAt };
+    }
+  } catch (err) {
+    console.error('Failed logging in customer in Shopify:', err);
+  }
+  return { success: false, message: 'Invalid Shopify login credentials' };
+}
+
+export async function getShopifyCustomerDetails(accessToken: string) {
+  try {
+    const data = await shopifyFetch<any>({
+      query: CUSTOMER_QUERY,
+      variables: { customerAccessToken: accessToken },
+    });
+
+    if (data?.customer) {
+      return data.customer;
+    }
+  } catch (err) {
+    console.error('Failed fetching customer from Shopify:', err);
+  }
+  return null;
+}
+
 

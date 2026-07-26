@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, ShoppingBag, Heart, Menu, X, Sun, Moon, Sparkles } from 'lucide-react';
+import { Search, ShoppingBag, Heart, Menu, X, Sun, Moon, Sparkles, User } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavbarProps {
   onOpenSearch: () => void;
@@ -24,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { totalQuantity, setIsCartOpen } = useCart();
   const { wishlistCount, setIsWishlistOpen } = useWishlist();
+  const { user, openAuthModal } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -225,6 +227,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="Search Products & Actives"
           >
             <Search className="w-5 h-5" />
+          </button>
+
+          {/* User Account Trigger */}
+          <button
+            id="btn-user-account-trigger"
+            onClick={() => openAuthModal()}
+            className="p-2 text-[#1F1F1F] dark:text-[#F3F4F6] hover:text-[#2F5D50] dark:hover:text-[#D6A34A] transition-colors flex items-center gap-1.5"
+            title={user ? `Logged in as ${user.name}` : "Log In / Register"}
+          >
+            {user ? (
+              <div className="w-7 h-7 rounded-full bg-[#2F5D50] text-white text-xs font-bold flex items-center justify-center font-serif shadow-sm border border-[#D6A34A]">
+                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+            ) : (
+              <User className="w-5 h-5" />
+            )}
           </button>
 
           {/* Dark Mode Toggle */}

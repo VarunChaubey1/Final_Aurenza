@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
 import { NotificationToast } from './components/common/NotificationToast';
 import { AnnouncementBar } from './components/layout/AnnouncementBar';
 import { Navbar } from './components/layout/Navbar';
@@ -247,6 +249,8 @@ export function AppContent() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
+
+      <AuthModal />
     </div>
   );
 }
@@ -256,8 +260,10 @@ export default function App() {
     <ShopProvider>
       <CartProvider>
         <WishlistProvider>
-          <AppContent />
-          <NotificationToast />
+          <AuthProvider>
+            <AppContent />
+            <NotificationToast />
+          </AuthProvider>
         </WishlistProvider>
       </CartProvider>
     </ShopProvider>
