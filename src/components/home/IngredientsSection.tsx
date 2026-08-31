@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { KEY_INGREDIENTS } from '../../data/mockProducts';
-import { useShop } from '../../context/ShopContext';
+import { useNavigate } from 'react-router-dom';
+import { shopPath } from '../../context/UIContext';
 import { Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
 
 interface IngredientsSectionProps {
@@ -10,7 +11,7 @@ interface IngredientsSectionProps {
 export const IngredientsSection: React.FC<IngredientsSectionProps> = ({
   onSelectIngredientFilter,
 }) => {
-  const { openCategoryPage } = useShop();
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState(KEY_INGREDIENTS[0].id);
 
   const activeIngredient = KEY_INGREDIENTS.find((i) => i.id === selectedId) || KEY_INGREDIENTS[0];
@@ -19,7 +20,7 @@ export const IngredientsSection: React.FC<IngredientsSectionProps> = ({
     if (onSelectIngredientFilter) {
       onSelectIngredientFilter(name);
     } else {
-      openCategoryPage('All');
+      navigate(shopPath({ ingredient: name }));
     }
   };
 
