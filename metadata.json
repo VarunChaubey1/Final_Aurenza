@@ -1,6 +1,0 @@
-{
-  "name": "Aurenza - Luxury D2C Skincare & Haircare",
-  "description": "Production-ready luxury D2C skincare and haircare eCommerce platform powered by Shopify Storefront GraphQL API, React 19, Tailwind CSS v4, and dynamic collections.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
