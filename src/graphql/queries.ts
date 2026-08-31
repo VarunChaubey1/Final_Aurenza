@@ -45,6 +45,21 @@ export const PRODUCTS_GRAPHQL_QUERY = `
               }
             }
           }
+          metafields(identifiers: [
+            { namespace: "reviews", key: "rating" },
+            { namespace: "reviews", key: "rating_count" },
+            { namespace: "custom", key: "key_actives" },
+            { namespace: "custom", key: "full_ingredients" },
+            { namespace: "custom", key: "benefits" },
+            { namespace: "custom", key: "directions" },
+            { namespace: "custom", key: "skin_type" },
+            { namespace: "custom", key: "concern" },
+            { namespace: "custom", key: "dermatologist_note" }
+          ]) {
+            namespace
+            key
+            value
+          }
           variants(first: 10) {
             edges {
               node {
@@ -111,6 +126,21 @@ export const PRODUCT_BY_HANDLE_QUERY = `
             altText
           }
         }
+      }
+      metafields(identifiers: [
+        { namespace: "reviews", key: "rating" },
+        { namespace: "reviews", key: "rating_count" },
+        { namespace: "custom", key: "key_actives" },
+        { namespace: "custom", key: "full_ingredients" },
+        { namespace: "custom", key: "benefits" },
+        { namespace: "custom", key: "directions" },
+        { namespace: "custom", key: "skin_type" },
+        { namespace: "custom", key: "concern" },
+        { namespace: "custom", key: "dermatologist_note" }
+      ]) {
+        namespace
+        key
+        value
       }
       variants(first: 10) {
         edges {

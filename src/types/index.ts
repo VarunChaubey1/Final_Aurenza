@@ -57,8 +57,9 @@ export interface Product {
   featuredImage: ShopifyImage;
   images: ShopifyImage[];
   variants: ProductVariant[];
-  rating: number;
-  reviewsCount: number;
+  /** Average rating from Shopify reviews metafield; undefined when no reviews exist */
+  rating?: number;
+  reviewsCount?: number;
   reviews?: ProductReview[];
   ingredients: {
     keyActives: string[];
