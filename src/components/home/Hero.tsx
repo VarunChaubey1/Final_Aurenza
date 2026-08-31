@@ -130,15 +130,17 @@ export const Hero: React.FC<HeroProps> = ({
                   {featuredProduct.vendor || 'Shopify Store'} • {featuredProduct.category || 'Skincare Routine'}
                 </div>
 
-                {/* Star Rating */}
-                <div className="flex items-center gap-1 mb-4 text-[#D6A34A]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-[#D6A34A]" />
-                  ))}
-                  <span className="text-white/70 text-xs ml-2 font-sans font-bold">
-                    ({typeof featuredProduct.rating === 'number' ? Number(featuredProduct.rating).toFixed(1) : (featuredProduct.rating || 4.9)}/5 • {featuredProduct.reviewsCount || 120}+ Reviews)
-                  </span>
-                </div>
+                {/* Star Rating (only when real review data exists) */}
+                {typeof featuredProduct.rating === 'number' && (
+                  <div className="flex items-center gap-1 mb-4 text-[#D6A34A]">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < Math.round(featuredProduct.rating!) ? 'fill-[#D6A34A]' : 'opacity-30'}`} />
+                    ))}
+                    <span className="text-white/70 text-xs ml-2 font-sans font-bold">
+                      ({featuredProduct.rating.toFixed(1)}/5{featuredProduct.reviewsCount ? ` • ${featuredProduct.reviewsCount} Reviews` : ''})
+                    </span>
+                  </div>
+                )}
 
                 {/* Price & Add */}
                 <div className="text-3xl font-light tracking-tight mb-6">

@@ -93,7 +93,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ onNavigateShop, 
                       }}
                     >
                       <img
-                        src={product.featuredImage?.url || product.images?.[0] || 'https://images.unsplash.com/photo-1608248597260-84381e4695b7?auto=format&fit=crop&q=80&w=400'}
+                        src={product.featuredImage?.url || product.images?.[0]?.url || ''}
                         alt={product.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -116,19 +116,20 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ onNavigateShop, 
 
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-bold text-[#2F5D50] dark:text-[#D6A34A]">
-                          ₹{(product.price?.amount ? Number(product.price.amount) : product.price || 0).toLocaleString('en-IN')}
+                          ₹{Number(product.priceRange.minVariantPrice.amount).toLocaleString('en-IN')}
                         </span>
-                        {product.compareAtPrice && (
+                        {product.compareAtPriceRange?.minVariantPrice &&
+                          Number(product.compareAtPriceRange.minVariantPrice.amount) > Number(product.priceRange.minVariantPrice.amount) && (
                           <span className="text-[10px] text-[#9CA3AF] line-through">
-                            ₹{(product.compareAtPrice?.amount ? Number(product.compareAtPrice.amount) : product.compareAtPrice || 0).toLocaleString('en-IN')}
+                            ₹{Number(product.compareAtPriceRange.minVariantPrice.amount).toLocaleString('en-IN')}
                           </span>
                         )}
                       </div>
 
-                      {product.rating && (
+                      {typeof product.rating === 'number' && (
                         <div className="flex items-center gap-1 text-[#D6A34A] mt-1 text-[10px]">
                           <Star className="w-3 h-3 fill-current" />
-                          <span>{typeof product.rating === 'number' ? product.rating.toFixed(1) : product.rating}</span>
+                          <span>{product.rating.toFixed(1)}</span>
                         </div>
                       )}
                     </div>
@@ -145,7 +146,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({ onNavigateShop, 
 
                       <button
                         onClick={() => {
-                          addToCart(product, 1);
+                          addToCart(product, product.variants[0], 1);
                         }}
                         className="p-2 bg-[#2F5D50] dark:bg-[#4A8172] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-[#1a382f] transition-all flex items-center gap-1 shadow-sm"
                         title="Add to Cart"

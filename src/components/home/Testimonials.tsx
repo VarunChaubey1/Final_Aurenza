@@ -60,7 +60,7 @@ export const Testimonials: React.FC = () => {
                     <div className="text-xs font-bold text-[#1F1F1F] dark:text-[#F3F4F6] flex items-center gap-1.5">
                       <span>{t.author}, {t.age}</span>
                       {t.verifiedBuyer && (
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" title="Verified Buyer" />
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" aria-label="Verified Buyer" role="img" />
                       )}
                     </div>
                     <div className="text-[10px] text-[#6B7280]">{t.location}</div>
