@@ -287,17 +287,19 @@ export const CUSTOMER_QUERY = `
       phone
       defaultAddress {
         address1
+        address2
         city
         province
         zip
         country
       }
-      orders(first: 10) {
+      orders(first: 10, sortKey: PROCESSED_AT, reverse: true) {
         edges {
           node {
             id
             orderNumber
             processedAt
+            statusUrl
             totalPrice {
               amount
               currencyCode
