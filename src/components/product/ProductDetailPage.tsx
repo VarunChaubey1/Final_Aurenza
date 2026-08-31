@@ -34,7 +34,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onQuickView,
   onSelectProduct,
 }) => {
-  const { addToCart, openCheckout } = useCart();
+  const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0]);
@@ -66,8 +66,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   const handleBuyNow = () => {
+    // addToCart opens the cart drawer, from which the user proceeds to Shopify checkout.
     addToCart(product, selectedVariant, quantity);
-    openCheckout();
   };
 
   const handleAddReview = (e: React.FormEvent) => {
