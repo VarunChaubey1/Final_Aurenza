@@ -1,112 +1,139 @@
 import { MOCK_PRODUCTS, MOCK_COLLECTIONS } from '../data/mockProducts';
 import { Product, Collection, ShopifyImage, ProductVariant } from '../types';
-import { 
-  PRODUCTS_GRAPHQL_QUERY, 
-  PRODUCT_BY_HANDLE_QUERY, 
+import {
+  PRODUCTS_GRAPHQL_QUERY,
+  PRODUCT_BY_HANDLE_QUERY,
   COLLECTIONS_QUERY,
   CUSTOMER_CREATE_MUTATION,
   CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION,
-  CUSTOMER_QUERY 
+  CUSTOMER_QUERY,
 } from '../graphql/queries';
 
-export const DEFAULT_STOREFRONT_TOKEN = '441155a370abc67d0d0729b8b01b700d';
-export const DEFAULT_STORE_DOMAIN = '2ckvdk-eq.myshopify.com';
+/* ------------------------------------------------------------------ */
+/* Configuration                                                       */
+/* ------------------------------------------------------------------ */
 
-export function getStoredShopifyCredentials() {
-  let domain = typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_domain') : null;
-  let token = typeof window !== 'undefined' ? localStorage.getItem('aurenza_shopify_token') : null;
+const API_VERSION = import.meta.env.VITE_SHOPIFY_API_VERSION || '2025-07';
 
-  if (!domain || !domain.trim()) {
-    domain =
-      (typeof process !== 'undefined' && process.env?.VITE_SHOPIFY_STORE_DOMAIN) ||
-      DEFAULT_STORE_DOMAIN;
-  }
-
-  // Filter out invalid shpat_ tokens for Storefront API calls
-  if (!token || !token.trim() || token.startsWith('shpat_')) {
-    token =
-      (typeof process !== 'undefined' && process.env?.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN) ||
-      DEFAULT_STOREFRONT_TOKEN;
-  }
-
-  return { domain: domain.trim(), token: token.trim() };
+function normalizeDomain(domain: string): string {
+  return domain.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
 }
 
-export function saveShopifyCredentials(domain: string, token: string) {
-  if (typeof window !== 'undefined') {
-    if (domain) localStorage.setItem('aurenza_shopify_domain', domain);
-    else localStorage.removeItem('aurenza_shopify_domain');
+export function getShopifyConfig(): { domain: string; token: string; configured: boolean } {
+  const domain = normalizeDomain(import.meta.env.VITE_SHOPIFY_STORE_DOMAIN || '');
+  const token = (import.meta.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '').trim();
 
-    if (token) localStorage.setItem('aurenza_shopify_token', token);
-    else localStorage.removeItem('aurenza_shopify_token');
+  // Admin API tokens (shpat_...) must never be used from the browser.
+  const isStorefrontToken = token.length > 0 && !token.startsWith('shpat_');
+
+  if (token.startsWith('shpat_')) {
+    console.error(
+      'VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN looks like an Admin API token (shpat_...). ' +
+        'Use a Storefront API access token instead and rotate the admin token immediately.'
+    );
+  }
+
+  return { domain, token, configured: Boolean(domain) && isStorefrontToken };
+}
+
+/** True when we should use local mock data (dev only, no credentials). */
+export function shouldUseMockData(): boolean {
+  return import.meta.env.DEV && !getShopifyConfig().configured;
+}
+
+/* ------------------------------------------------------------------ */
+/* Low-level fetch                                                     */
+/* ------------------------------------------------------------------ */
+
+export class ShopifyError extends Error {
+  constructor(message: string, public readonly details?: unknown) {
+    super(message);
+    this.name = 'ShopifyError';
   }
 }
 
 export async function shopifyFetch<T>({
   query,
   variables = {},
-  customDomain,
-  customToken,
 }: {
   query: string;
   variables?: Record<string, unknown>;
-  customDomain?: string;
-  customToken?: string;
-}): Promise<T | null> {
-  const creds = getStoredShopifyCredentials();
-  const domain = (customDomain || creds.domain).replace(/^https?:\/\//, '').replace(/\/$/, '');
-  
-  // Collect candidate tokens, ensuring shpat_ tokens are excluded from Storefront headers
-  const rawTokens = [
-    customToken,
-    creds.token,
-    DEFAULT_STOREFRONT_TOKEN
-  ];
-
-  const tokensToTry = rawTokens
-    .filter((t): t is string => Boolean(t && t.trim() && !t.startsWith('shpat_')))
-    .filter((t, i, arr) => arr.indexOf(t) === i);
-
-  if (!domain || tokensToTry.length === 0) {
-    return null;
+}): Promise<T> {
+  const { domain, token, configured } = getShopifyConfig();
+  if (!configured) {
+    throw new ShopifyError('Shopify Storefront API is not configured (check VITE_SHOPIFY_* env vars).');
   }
 
-  const endpoint = `https://${domain}/api/2024-01/graphql.json`;
+  const endpoint = `https://${domain}/api/${API_VERSION}/graphql.json`;
 
-  for (const token of tokensToTry) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Storefront-Access-Token': token,
-        },
-        body: JSON.stringify({ query, variables }),
-      });
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Storefront-Access-Token': token,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
 
-      if (!response.ok) {
-        console.warn(`Shopify API HTTP error with token ${token.slice(0, 8)}... Status: ${response.status}`);
-        continue;
-      }
-
-      const json = await response.json();
-      if (json.errors) {
-        console.warn('Shopify GraphQL Errors:', json.errors);
-        continue;
-      }
-
-      if (json.data) {
-        return json.data as T;
-      }
-    } catch (err) {
-      console.error('Failed fetching from Shopify Storefront API:', err);
-    }
+  if (!response.ok) {
+    throw new ShopifyError(`Shopify API responded with HTTP ${response.status}`);
   }
 
-  return null;
+  const json = await response.json();
+  if (json.errors?.length) {
+    throw new ShopifyError(json.errors[0]?.message || 'Shopify GraphQL error', json.errors);
+  }
+  return json.data as T;
 }
 
+/* ------------------------------------------------------------------ */
+/* Transformers                                                        */
+/* ------------------------------------------------------------------ */
+
+type Metafield = { namespace: string; key: string; value: string } | null;
+
+function metafieldMap(node: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const mf of (node.metafields || []) as Metafield[]) {
+    if (mf?.value) out[`${mf.namespace}.${mf.key}`] = mf.value;
+  }
+  return out;
+}
+
+function parseList(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+  } catch {
+    /* not JSON — treat as comma/newline separated */
+  }
+  return raw.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+}
+
+function parseRating(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    const v = parseFloat(parsed?.value ?? parsed);
+    return Number.isFinite(v) ? v : undefined;
+  } catch {
+    const v = parseFloat(raw);
+    return Number.isFinite(v) ? v : undefined;
+  }
+}
+
+const FALLBACK_IMAGE: ShopifyImage = {
+  id: 'img-default',
+  url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800',
+  altText: 'Product image coming soon',
+  width: 800,
+  height: 800,
+};
+
 export function transformShopifyProduct(node: any): Product {
+  const meta = metafieldMap(node);
+
   const featuredImg: ShopifyImage = node.featuredImage?.url
     ? {
         id: node.featuredImage.id || 'img-0',
@@ -115,13 +142,7 @@ export function transformShopifyProduct(node: any): Product {
         width: node.featuredImage.width || 800,
         height: node.featuredImage.height || 800,
       }
-    : {
-        id: 'img-default',
-        url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800',
-        altText: node.title,
-        width: 800,
-        height: 800,
-      };
+    : { ...FALLBACK_IMAGE, altText: node.title };
 
   const imagesList: ShopifyImage[] = (node.images?.edges || []).map((e: any, idx: number) => ({
     id: e.node?.id || `img-${idx}`,
@@ -130,280 +151,195 @@ export function transformShopifyProduct(node: any): Product {
     width: e.node?.width || 800,
     height: e.node?.height || 800,
   }));
-
-  if (imagesList.length === 0) {
-    imagesList.push(featuredImg);
-  }
+  if (imagesList.length === 0) imagesList.push(featuredImg);
 
   const variantsList: ProductVariant[] = (node.variants?.edges || []).map((e: any, idx: number) => ({
     id: e.node?.id || `var-${idx}`,
     title: e.node?.title || 'Default Title',
     availableForSale: e.node?.availableForSale !== false,
-    price: e.node?.price || { amount: '999', currencyCode: 'INR' },
+    price: e.node?.price || node.priceRange?.minVariantPrice || { amount: '0', currencyCode: 'INR' },
     compareAtPrice: e.node?.compareAtPrice || null,
     selectedOptions: e.node?.selectedOptions || [{ name: 'Title', value: 'Default Title' }],
     image: e.node?.image ? { id: e.node.image.id, url: e.node.image.url } : undefined,
   }));
 
-  if (variantsList.length === 0) {
-    variantsList.push({
-      id: `var-${node.id || '1'}`,
-      title: 'Default Variant',
-      availableForSale: true,
-      price: node.priceRange?.minVariantPrice || { amount: '999', currencyCode: 'INR' },
-      compareAtPrice: node.compareAtPriceRange?.minVariantPrice || null,
-      selectedOptions: [{ name: 'Size', value: '50ml' }],
-    });
-  }
-
   const tagsArr: string[] = node.tags || [];
-  const productType = node.productType || 'Skin Care';
+  const productType: string = node.productType || 'Skin Care';
+  const lowerAll = `${node.title} ${productType} ${tagsArr.join(' ')}`.toLowerCase();
 
-  let category: 'Skin Care' | 'Hair Care' = 'Skin Care';
-  if (
-    productType.toLowerCase().includes('hair') ||
-    tagsArr.some(t => t.toLowerCase().includes('hair')) ||
-    node.title.toLowerCase().includes('shampoo') ||
-    node.title.toLowerCase().includes('hair') ||
-    node.title.toLowerCase().includes('scalp') ||
-    node.title.toLowerCase().includes('oil')
-  ) {
-    category = 'Hair Care';
-  }
+  const category: Product['category'] =
+    /hair|shampoo|scalp/.test(lowerAll) ? 'Hair Care' : 'Skin Care';
 
-  let subcategory: any = 'Face Serum';
-  const lowerTitle = (node.title + ' ' + productType + ' ' + tagsArr.join(' ')).toLowerCase();
-  if (lowerTitle.includes('wash') || lowerTitle.includes('cleanser') || lowerTitle.includes('facewash')) subcategory = 'Face Wash';
-  else if (lowerTitle.includes('serum') && category === 'Skin Care') subcategory = 'Face Serum';
-  else if (lowerTitle.includes('sunscreen') || lowerTitle.includes('spf') || lowerTitle.includes('sun')) subcategory = 'Sunscreen';
-  else if (lowerTitle.includes('moisturizer') || lowerTitle.includes('cream') || lowerTitle.includes('lotion')) subcategory = 'Moisturizer';
-  else if (lowerTitle.includes('shampoo')) subcategory = 'Shampoo';
-  else if (lowerTitle.includes('oil')) subcategory = 'Hair Oil';
-  else if (lowerTitle.includes('hair') && lowerTitle.includes('serum')) subcategory = 'Hair Serum';
+  let subcategory: Product['subcategory'] = category === 'Hair Care' ? 'Hair Serum' : 'Face Serum';
+  if (/wash|cleanser/.test(lowerAll)) subcategory = 'Face Wash';
+  else if (/sunscreen|spf/.test(lowerAll)) subcategory = 'Sunscreen';
+  else if (/moisturi[sz]er|cream|lotion/.test(lowerAll)) subcategory = 'Moisturizer';
+  else if (/shampoo/.test(lowerAll)) subcategory = 'Shampoo';
+  else if (category === 'Hair Care' && /oil/.test(lowerAll)) subcategory = 'Hair Oil';
+  else if (category === 'Hair Care' && /serum/.test(lowerAll)) subcategory = 'Hair Serum';
+
+  const inStock = variantsList.some(v => v.availableForSale);
 
   return {
     id: node.id,
     handle: node.handle,
     title: node.title,
-    description: node.description || 'Pure botanical formulation engineered for transformative results.',
+    description: node.description || '',
     descriptionHtml: node.descriptionHtml,
     vendor: node.vendor || 'Aurenza',
     productType,
     category,
     subcategory,
     tags: tagsArr,
-    priceRange: node.priceRange || {
-      minVariantPrice: { amount: '999', currencyCode: 'INR' },
-      maxVariantPrice: { amount: '1299', currencyCode: 'INR' },
-    },
+    priceRange: node.priceRange,
     compareAtPriceRange: node.compareAtPriceRange,
     featuredImage: featuredImg,
     images: imagesList,
     variants: variantsList,
-    rating: Number((4.8 + ((node.title.length % 3) * 0.1)).toFixed(1)),
-    reviewsCount: 45 + (node.title.length * 4) % 150,
+    // Only real review data (from Shopify "reviews" metafields) is shown.
+    rating: parseRating(meta['reviews.rating']),
+    reviewsCount: meta['reviews.rating_count'] ? parseInt(meta['reviews.rating_count'], 10) : undefined,
     ingredients: {
-      keyActives: tagsArr.length > 0 ? tagsArr.slice(0, 3) : ['Botanical Actives', 'Hyaluronic Acid'],
-      fullList: 'Aqua, Glycerin, Botanical Actives, Niacinamide, Sodium Hyaluronate, Phenoxyethanol.',
+      keyActives: parseList(meta['custom.key_actives']),
+      fullList: meta['custom.full_ingredients'] || '',
     },
-    benefits: ['Dermatologically tested', '100% Vegan & Cruelty-free', 'Free from Sulphates & Parabens'],
-    directions: 'Apply 3-4 drops to cleansed face and neck twice daily.',
-    skinType: ['All Skin Types', 'Sensitive', 'Combination'],
-    concern: ['Dullness', 'Hyperpigmentation', 'Hydration'],
+    benefits: parseList(meta['custom.benefits']),
+    directions: meta['custom.directions'] || '',
+    skinType: parseList(meta['custom.skin_type']),
+    concern: parseList(meta['custom.concern']),
+    dermatologistNote: meta['custom.dermatologist_note'],
     badge: tagsArr.includes('bestseller') ? 'BESTSELLER' : tagsArr.includes('new') ? 'NEW' : undefined,
     isBestSeller: tagsArr.includes('bestseller'),
     isNewArrival: tagsArr.includes('new'),
-    inStock: true,
+    inStock,
   };
 }
 
-export async function getProducts(options?: {
-  first?: number;
-  query?: string;
-  category?: string;
-  customDomain?: string;
-  customToken?: string;
-}): Promise<{ products: Product[]; isLiveShopify: boolean }> {
-  const data = await shopifyFetch<any>({
-    query: PRODUCTS_GRAPHQL_QUERY,
-    variables: { first: options?.first || 25, query: options?.query || null },
-    customDomain: options?.customDomain,
-    customToken: options?.customToken,
-  });
+/* ------------------------------------------------------------------ */
+/* Catalog                                                             */
+/* ------------------------------------------------------------------ */
 
-  if (data && data.products?.edges) {
-    const liveProducts: Product[] = data.products.edges.map((e: any) => transformShopifyProduct(e.node));
-
-    let filtered = liveProducts;
-
-    if (options?.category && options.category !== 'All') {
-      const catLower = options.category.toLowerCase().replace(/[^a-z0-9]/g, '');
-      filtered = filtered.filter(
-        p =>
-          p.category.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
-          p.subcategory.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
-          p.title.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
-          p.productType.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower) ||
-          p.tags.some(t => t.toLowerCase().replace(/[^a-z0-9]/g, '').includes(catLower))
-      );
-    }
-
-    if (liveProducts.length > 0) {
-      return { products: filtered, isLiveShopify: true };
-    }
-  }
-
-  // Fallback to MOCK_PRODUCTS if Shopify returns empty or fails
-  return { products: MOCK_PRODUCTS, isLiveShopify: false };
+export interface CatalogResult {
+  products: Product[];
+  collections: Collection[];
+  /** true when served from local mock data (dev without credentials) */
+  isMock: boolean;
 }
 
-export async function getProductByHandle(
-  handle: string,
-  customDomain?: string,
-  customToken?: string
-): Promise<Product | null> {
-  const data = await shopifyFetch<any>({
-    query: PRODUCT_BY_HANDLE_QUERY,
-    variables: { handle },
-    customDomain,
-    customToken,
-  });
-
-  if (data && data.productByHandle) {
-    return transformShopifyProduct(data.productByHandle);
+export async function getCatalog(first = 50): Promise<CatalogResult> {
+  if (shouldUseMockData()) {
+    console.warn('[Aurenza] Shopify not configured — using mock catalog (development only).');
+    return { products: MOCK_PRODUCTS, collections: MOCK_COLLECTIONS, isMock: true };
   }
 
-  return null;
+  const [prodData, colData] = await Promise.all([
+    shopifyFetch<any>({ query: PRODUCTS_GRAPHQL_QUERY, variables: { first } }),
+    shopifyFetch<any>({ query: COLLECTIONS_QUERY, variables: { first: 20 } }),
+  ]);
+
+  const products: Product[] = (prodData?.products?.edges || []).map((e: any) =>
+    transformShopifyProduct(e.node)
+  );
+
+  const collections: Collection[] = (colData?.collections?.edges || []).map((e: any) => ({
+    id: e.node.id,
+    handle: e.node.handle,
+    title: e.node.title,
+    description: e.node.description || '',
+    image: e.node.image
+      ? { id: e.node.image.id || 'col-img', url: e.node.image.url, altText: e.node.image.altText || e.node.title }
+      : undefined,
+    productsCount: e.node.products?.edges?.length || 0,
+  }));
+
+  return { products, collections, isMock: false };
 }
 
-export async function getCollections(
-  customDomain?: string,
-  customToken?: string
-): Promise<Collection[]> {
-  try {
-    const data = await shopifyFetch<any>({
-      query: COLLECTIONS_QUERY,
-      variables: { first: 20 },
-      customDomain,
-      customToken,
-    });
-
-    if (data && data.collections?.edges && data.collections.edges.length > 0) {
-      const liveCollections: Collection[] = data.collections.edges.map((e: any) => {
-        const node = e.node;
-        const productsCount = node.products?.edges?.length || 0;
-        return {
-          id: node.id,
-          handle: node.handle,
-          title: node.title,
-          description: node.description || 'Pure botanical formulation collection engineered for transformative results.',
-          image: node.image
-            ? {
-                id: node.image.id || 'col-img',
-                url: node.image.url,
-                altText: node.image.altText || node.title,
-              }
-            : undefined,
-          productsCount: productsCount > 0 ? productsCount : 5,
-        };
-      });
-      return liveCollections;
-    }
-  } catch (err) {
-    console.error('Failed fetching collections from Shopify:', err);
+export async function getProductByHandle(handle: string): Promise<Product | null> {
+  if (shouldUseMockData()) {
+    return MOCK_PRODUCTS.find(p => p.handle === handle) || null;
   }
+  const data = await shopifyFetch<any>({ query: PRODUCT_BY_HANDLE_QUERY, variables: { handle } });
+  return data?.productByHandle ? transformShopifyProduct(data.productByHandle) : null;
+}
 
-  return MOCK_COLLECTIONS;
+/* ------------------------------------------------------------------ */
+/* Customer accounts                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface CustomerResult<T = unknown> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+function firstUserError(errs: any[] | undefined): string | undefined {
+  return errs && errs.length > 0 ? errs[0].message : undefined;
 }
 
 export async function createShopifyCustomer(input: {
   email: string;
-  password?: string;
+  password: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
-}) {
-  try {
-    // Format phone to E.164 standard if valid, otherwise omit to avoid Shopify validation errors
-    let formattedPhone: string | undefined = undefined;
-    if (input.phone) {
-      const cleanDigits = input.phone.replace(/\D/g, '');
-      if (cleanDigits.length >= 10) {
-        formattedPhone = input.phone.startsWith('+') 
-          ? input.phone 
-          : `+91${cleanDigits.slice(-10)}`;
-      }
-    }
+}): Promise<CustomerResult<{ id: string }>> {
+  let phone: string | undefined;
+  if (input.phone) {
+    const digits = input.phone.replace(/\D/g, '');
+    if (digits.length >= 10) phone = input.phone.startsWith('+') ? input.phone : `+91${digits.slice(-10)}`;
+  }
 
+  try {
     const data = await shopifyFetch<any>({
       query: CUSTOMER_CREATE_MUTATION,
       variables: {
         input: {
           email: input.email,
-          password: input.password || 'Aurenza#2026',
-          firstName: input.firstName || 'Customer',
-          lastName: input.lastName || '',
-          phone: formattedPhone,
+          password: input.password,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          phone,
         },
       },
     });
-
-    if (data?.customerCreate?.customerUserErrors?.length > 0) {
-      const errs = data.customerCreate.customerUserErrors;
-      console.warn('Shopify Customer Creation Notice:', errs);
-      return { success: false, errors: errs, message: errs[0].message };
-    }
-
-    if (data?.customerCreate?.customer) {
-      return { success: true, customer: data.customerCreate.customer };
-    }
-  } catch (err) {
-    console.error('Failed creating customer in Shopify:', err);
+    const err = firstUserError(data?.customerCreate?.customerUserErrors);
+    if (err) return { success: false, message: err };
+    if (data?.customerCreate?.customer) return { success: true, data: data.customerCreate.customer };
+    return { success: false, message: 'Could not create account.' };
+  } catch (e) {
+    return { success: false, message: e instanceof Error ? e.message : 'Could not create account.' };
   }
-  return { success: false, message: 'Could not create Shopify customer' };
 }
 
-export async function loginShopifyCustomer(email: string, password?: string) {
+export async function loginShopifyCustomer(
+  email: string,
+  password: string
+): Promise<CustomerResult<{ accessToken: string; expiresAt: string }>> {
   try {
     const data = await shopifyFetch<any>({
       query: CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION,
-      variables: {
-        input: {
-          email,
-          password: password || 'Aurenza#2026',
-        },
-      },
+      variables: { input: { email, password } },
     });
-
-    if (data?.customerAccessTokenCreate?.customerUserErrors?.length > 0) {
-      const errs = data.customerAccessTokenCreate.customerUserErrors;
-      return { success: false, errors: errs, message: errs[0].message };
-    }
-
+    const err = firstUserError(data?.customerAccessTokenCreate?.customerUserErrors);
+    if (err) return { success: false, message: err };
     const tokenObj = data?.customerAccessTokenCreate?.customerAccessToken;
-    if (tokenObj?.accessToken) {
-      return { success: true, accessToken: tokenObj.accessToken, expiresAt: tokenObj.expiresAt };
-    }
-  } catch (err) {
-    console.error('Failed logging in customer in Shopify:', err);
+    if (tokenObj?.accessToken) return { success: true, data: tokenObj };
+    return { success: false, message: 'Invalid email or password.' };
+  } catch (e) {
+    return { success: false, message: e instanceof Error ? e.message : 'Login failed.' };
   }
-  return { success: false, message: 'Invalid Shopify login credentials' };
 }
 
-export async function getShopifyCustomerDetails(accessToken: string) {
+export async function getShopifyCustomerDetails(accessToken: string): Promise<any | null> {
   try {
     const data = await shopifyFetch<any>({
       query: CUSTOMER_QUERY,
       variables: { customerAccessToken: accessToken },
     });
-
-    if (data?.customer) {
-      return data.customer;
-    }
-  } catch (err) {
-    console.error('Failed fetching customer from Shopify:', err);
+    return data?.customer || null;
+  } catch (e) {
+    console.error('Failed fetching customer from Shopify:', e);
+    return null;
   }
-  return null;
 }
-
-

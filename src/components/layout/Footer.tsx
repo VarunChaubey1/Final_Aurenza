@@ -1,9 +1,11 @@
 import React from 'react';
-import { useShop } from '../../context/ShopContext';
+import { Link } from 'react-router-dom';
 import { ShieldCheck, Heart, Award, MapPin, Instagram, Facebook, Linkedin, ArrowUp } from 'lucide-react';
+import { shopPath } from '../../context/UIContext';
+import { useUI } from '../../context/UIContext';
 
 export const Footer: React.FC = () => {
-  const { setActiveView, openCategoryPage } = useShop();
+  const { setIsQuizOpen } = useUI();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -71,24 +73,24 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li>
-                <button onClick={() => openCategoryPage('Face Serum')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Face Serum' })} className="hover:text-white transition-colors">
                   Vitamin C Serums
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => openCategoryPage('Face Wash')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Face Wash' })} className="hover:text-white transition-colors">
                   Cica Cleansers
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => openCategoryPage('Sunscreen')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Sunscreen' })} className="hover:text-white transition-colors">
                   SPF 50+ Sunscreen
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => openCategoryPage('Moisturizer')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Moisturizer' })} className="hover:text-white transition-colors">
                   Glutathione Creams
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -100,19 +102,19 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li>
-                <button onClick={() => openCategoryPage('Hair Oil')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Hair Oil' })} className="hover:text-white transition-colors">
                   Rosemary Hair Oil
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => openCategoryPage('Shampoo')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Shampoo' })} className="hover:text-white transition-colors">
                   Keratin Shampoo
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => openCategoryPage('Hair Serum')} className="hover:text-white transition-colors">
+                <Link to={shopPath({ subcategory: 'Hair Serum' })} className="hover:text-white transition-colors">
                   Heat Protectant Serum
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -124,22 +126,22 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li>
-                <button onClick={() => { setActiveView('about'); scrollToTop(); }} className="hover:text-white transition-colors">
+                <Link to="/about" className="hover:text-white transition-colors">
                   Our Science
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => { setActiveView('ingredients'); scrollToTop(); }} className="hover:text-white transition-colors">
+                <Link to="/ingredients" className="hover:text-white transition-colors">
                   Ingredients Index
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => { setActiveView('contact'); scrollToTop(); }} className="hover:text-white transition-colors">
+                <a href="mailto:support@aurenzabeauty.com" className="hover:text-white transition-colors">
                   Contact & Support
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => { setActiveView('quiz'); scrollToTop(); }} className="hover:text-white transition-colors">
+                <button onClick={() => setIsQuizOpen(true)} className="hover:text-white transition-colors">
                   Skin Diagnostics
                 </button>
               </li>

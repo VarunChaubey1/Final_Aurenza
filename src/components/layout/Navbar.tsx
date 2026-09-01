@@ -1,42 +1,48 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Heart, Menu, X, Sun, Moon, Sparkles, User } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
+import { useShop } from '../../context/ShopContext';
+import { shopPath } from '../../context/UIContext';
 
 interface NavbarProps {
   onOpenSearch: () => void;
   onOpenQuiz: () => void;
-  onNavigateCategory: (cat: string, subcat?: string) => void;
-  activeView: string;
-  setActiveView: (view: 'home' | 'shop' | 'product-detail' | 'about' | 'ingredients') => void;
-  isDarkMode: boolean;
-  onToggleDarkMode: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-  onOpenSearch,
-  onOpenQuiz,
-  onNavigateCategory,
-  activeView,
-  setActiveView,
-  isDarkMode,
-  onToggleDarkMode,
-}) => {
+type View = 'home' | 'shop' | 'about' | 'ingredients';
+const VIEW_PATH: Record<View, string> = { home: '/', shop: '/shop', about: '/about', ingredients: '/ingredients' };
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch, onOpenQuiz }) => {
   const { totalQuantity, setIsCartOpen } = useCart();
   const { wishlistCount, setIsWishlistOpen } = useWishlist();
   const { user, openAuthModal } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useShop();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  const handleNavClick = (view: 'home' | 'shop' | 'product-detail' | 'about' | 'ingredients', category?: string) => {
-    setActiveView(view);
-    if (category) {
-      onNavigateCategory(category);
-    }
+  const activeView: View | null =
+    pathname === '/' ? 'home' : pathname.startsWith('/shop') ? 'shop' : pathname.startsWith('/about') ? 'about' : pathname.startsWith('/ingredients') ? 'ingredients' : null;
+
+  const closeMenus = () => {
     setMobileMenuOpen(false);
     setActiveDropdown(null);
   };
+
+  const handleNavClick = (view: View, category?: string) => {
+    navigate(category ? shopPath({ category }) : VIEW_PATH[view]);
+    closeMenus();
+  };
+
+  const onNavigateCategory = (category: string, subcategory?: string) => {
+    navigate(shopPath({ category, subcategory }));
+    closeMenus();
+  };
+  const onToggleDarkMode = toggleDarkMode;
 
   return (
     <header id="main-header" className="sticky top-0 z-40 bg-[#FFF9F4]/90 dark:bg-[#121816]/90 backdrop-blur-md border-b border-[#2F5D50]/10 transition-colors duration-300">
@@ -53,14 +59,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Brand Logo */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
+        <button type="button" className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')} aria-label="Aurenza home">
           <div className="w-9 h-9 rounded-full bg-[#2F5D50] dark:bg-[#4A8172] text-white flex items-center justify-center font-serif text-xl font-bold shadow-sm">
             A
           </div>
           <span className="text-2xl sm:text-3xl font-serif tracking-[0.2em] uppercase font-bold text-[#2F5D50] dark:text-[#F3F4F6]">
             Aurenza
           </span>
-        </div>
+        </button>
 
         {/* Desktop Navigation */}
         <nav id="desktop-nav" className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-[#1F1F1F]/80 dark:text-[#F3F4F6]/80">
@@ -103,7 +109,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Skin Care', 'Face Serum');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -112,7 +117,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Skin Care', 'Face Wash');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -121,7 +125,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Skin Care', 'Sunscreen');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -130,7 +133,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Skin Care', 'Moisturizer');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -159,7 +161,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Hair Care', 'Hair Oil');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -168,7 +169,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Hair Care', 'Shampoo');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -177,7 +177,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={() => {
                     onNavigateCategory('Hair Care', 'Hair Serum');
-                    setActiveView('shop');
                   }}
                   className="block w-full text-left px-3 py-2 text-xs hover:bg-[#FFF9F4] dark:hover:bg-[#2C3834] rounded-lg transition-colors text-[#1F1F1F] dark:text-[#F3F4F6]"
                 >
@@ -303,8 +302,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => {
               onNavigateCategory('Skin Care');
-              setActiveView('shop');
-              setMobileMenuOpen(false);
             }}
             className="block w-full text-left py-2 text-sm font-semibold uppercase tracking-wider text-[#1F1F1F] dark:text-[#F3F4F6]"
           >
@@ -313,8 +310,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => {
               onNavigateCategory('Hair Care');
-              setActiveView('shop');
-              setMobileMenuOpen(false);
             }}
             className="block w-full text-left py-2 text-sm font-semibold uppercase tracking-wider text-[#1F1F1F] dark:text-[#F3F4F6]"
           >
@@ -345,7 +340,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {isDarkMode ? 'Light Mode' : 'Dark Mode'}
               </span>
               <span className="text-[10px] uppercase font-bold text-[#D6A34A]">
-                {isDarkMode ? 'Active' : 'Active'}
+                {isDarkMode ? 'On' : 'Off'}
               </span>
             </button>
 

@@ -15,8 +15,7 @@ import {
   RotateCcw,
   Sparkles,
   ArrowLeft,
-  MessageSquarePlus,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 
 interface ProductDetailPageProps {
@@ -34,7 +33,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onQuickView,
   onSelectProduct,
 }) => {
-  const { addToCart, openCheckout } = useCart();
+  const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0]);
@@ -43,14 +42,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [added, setAdded] = useState(false);
   const [openSection, setOpenSection] = useState<'ingredients' | 'benefits' | 'directions' | 'reviews'>('ingredients');
 
-  // Customer Review Form State
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newReviewAuthor, setNewReviewAuthor] = useState('');
-  const [newReviewTitle, setNewReviewTitle] = useState('');
-  const [newReviewContent, setNewReviewContent] = useState('');
-  const [newReviewRating, setNewReviewRating] = useState(5);
-  const [localReviews, setLocalReviews] = useState(product.reviews || []);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const reviews = product.reviews || [];
 
   const priceNum = parseFloat(selectedVariant.price.amount);
   const comparePriceNum = selectedVariant.compareAtPrice
@@ -66,33 +58,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   const handleBuyNow = () => {
+    // addToCart opens the cart drawer, from which the user proceeds to Shopify checkout.
     addToCart(product, selectedVariant, quantity);
-    openCheckout();
-  };
-
-  const handleAddReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReviewAuthor || !newReviewContent) return;
-
-    const reviewObj = {
-      id: `rev_${Date.now()}`,
-      author: newReviewAuthor,
-      rating: newReviewRating,
-      title: newReviewTitle || 'Visible results!',
-      content: newReviewContent,
-      date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
-      verifiedPurchase: true,
-    };
-
-    setLocalReviews([reviewObj, ...localReviews]);
-    setReviewSubmitted(true);
-    setTimeout(() => {
-      setShowReviewForm(false);
-      setReviewSubmitted(false);
-      setNewReviewAuthor('');
-      setNewReviewTitle('');
-      setNewReviewContent('');
-    }, 2000);
   };
 
   const relatedProducts = allProducts.filter(
@@ -174,11 +141,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-widest text-[#D6A34A] mb-2">
                 <span>{product.subcategory}</span>
-                <div className="flex items-center gap-1 text-[#D6A34A]">
-                  <Star className="w-4 h-4 fill-[#D6A34A]" />
-                  <span>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating}</span>
-                  <span className="text-[#6B7280]">({localReviews.length + product.reviewsCount} Reviews)</span>
-                </div>
+                {typeof product.rating === 'number' && (
+                  <div className="flex items-center gap-1 text-[#D6A34A]">
+                    <Star className="w-4 h-4 fill-[#D6A34A]" />
+                    <span>{product.rating.toFixed(1)}</span>
+                    {product.reviewsCount ? <span className="text-[#6B7280]">({product.reviewsCount} Reviews)</span> : null}
+                  </div>
+                )}
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#1F1F1F] dark:text-[#F3F4F6] leading-tight mb-3">
@@ -368,86 +337,23 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   onClick={() => setOpenSection(openSection === 'reviews' ? ('' as any) : 'reviews')}
                   className="w-full p-4 text-left font-serif font-bold text-base flex items-center justify-between text-[#2F5D50] dark:text-[#F3F4F6]"
                 >
-                  <span>⭐ Verified Customer Reviews ({localReviews.length})</span>
+                  <span>⭐ Customer Reviews ({reviews.length})</span>
                   {openSection === 'reviews' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
 
                 {openSection === 'reviews' && (
                   <div className="p-4 pt-0 space-y-4 border-t border-[#2F5D50]/10">
                     
-                    {/* Add Review Button */}
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-[#6B7280]">Average Rating: <strong>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating} / 5</strong></span>
-                      <button
-                        onClick={() => setShowReviewForm(!showReviewForm)}
-                        className="text-xs bg-[#2F5D50] text-white px-3 py-1.5 rounded-xl font-bold uppercase tracking-wider flex items-center gap-1.5"
-                      >
-                        <MessageSquarePlus className="w-3.5 h-3.5" />
-                        Write A Review
-                      </button>
-                    </div>
-
-                    {/* Review Form */}
-                    {showReviewForm && (
-                      <form onSubmit={handleAddReview} className="bg-white dark:bg-[#1B2320] p-4 rounded-2xl border border-[#2F5D50]/20 space-y-3">
-                        <h5 className="font-bold text-xs uppercase text-[#2F5D50]">Share Your Experience</h5>
-                        {reviewSubmitted ? (
-                          <div className="text-xs text-emerald-700 font-bold bg-emerald-50 p-3 rounded-xl">
-                            Thank you! Your review has been submitted.
-                          </div>
-                        ) : (
-                          <>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                required
-                                placeholder="Your Name"
-                                value={newReviewAuthor}
-                                onChange={(e) => setNewReviewAuthor(e.target.value)}
-                                className="bg-[#FFF9F4] dark:bg-[#121816] p-2 rounded-xl text-xs border border-gray-300"
-                              />
-                              <select
-                                value={newReviewRating}
-                                onChange={(e) => setNewReviewRating(Number(e.target.value))}
-                                className="bg-[#FFF9F4] dark:bg-[#121816] p-2 rounded-xl text-xs border border-gray-300 font-bold"
-                              >
-                                <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
-                                <option value={4}>⭐⭐⭐⭐ (4 Stars)</option>
-                                <option value={3}>⭐⭐⭐ (3 Stars)</option>
-                              </select>
-                            </div>
-                            <input
-                              type="text"
-                              placeholder="Review Headline"
-                              value={newReviewTitle}
-                              onChange={(e) => setNewReviewTitle(e.target.value)}
-                              className="w-full bg-[#FFF9F4] dark:bg-[#121816] p-2 rounded-xl text-xs border border-gray-300"
-                            />
-                            <textarea
-                              required
-                              placeholder="Write your thoughts..."
-                              rows={2}
-                              value={newReviewContent}
-                              onChange={(e) => setNewReviewContent(e.target.value)}
-                              className="w-full bg-[#FFF9F4] dark:bg-[#121816] p-2 rounded-xl text-xs border border-gray-300"
-                            />
-                            <button
-                              type="submit"
-                              className="w-full bg-[#D6A34A] text-[#1F1F1F] py-2.5 rounded-xl font-bold uppercase text-xs"
-                            >
-                              Post Review
-                            </button>
-                          </>
-                        )}
-                      </form>
+                    {typeof product.rating === 'number' && (
+                      <span className="text-xs text-[#6B7280]">Average Rating: <strong>{product.rating.toFixed(1)} / 5</strong></span>
                     )}
 
                     {/* Review Item List */}
                     <div className="space-y-3">
-                      {localReviews.length === 0 ? (
-                        <p className="text-xs text-[#6B7280]">No reviews written yet. Be the first!</p>
+                      {reviews.length === 0 ? (
+                        <p className="text-xs text-[#6B7280]">No reviews yet.</p>
                       ) : (
-                        localReviews.map((rev) => (
+                        reviews.map((rev) => (
                           <div key={rev.id} className="bg-white dark:bg-[#1B2320] p-3.5 rounded-xl border border-[#2F5D50]/10 text-xs space-y-1">
                             <div className="flex items-center justify-between">
                               <div className="flex text-[#D6A34A]">
@@ -460,7 +366,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                             <div className="font-bold text-[#1F1F1F] dark:text-[#F3F4F6]">{rev.title}</div>
                             <p className="text-[#6B7280]">{rev.content}</p>
                             <div className="text-[10px] text-emerald-700 font-bold">
-                              ✓ {rev.author} (Verified Buyer)
+                              {rev.author}{rev.verifiedPurchase ? ' · Verified Buyer' : ''}
                             </div>
                           </div>
                         ))

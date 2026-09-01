@@ -1,9 +1,11 @@
 import React from 'react';
 import { Instagram, Heart } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { useUI } from '../../context/UIContext';
 
 export const InstagramGallery: React.FC = () => {
-  const { products, openProductPage } = useShop();
+  const { products } = useShop();
+  const { goToProduct } = useUI();
 
   const posts = products.slice(0, 4).map((prod, index) => ({
     id: prod.id,
@@ -43,7 +45,7 @@ export const InstagramGallery: React.FC = () => {
           {posts.map((post) => (
             <div
               key={post.id}
-              onClick={() => openProductPage(post.product)}
+              onClick={() => goToProduct(post.product)}
               className="group relative rounded-3xl overflow-hidden aspect-square shadow-sm bg-[#FFF9F4] dark:bg-[#121816] cursor-pointer"
             >
               <img

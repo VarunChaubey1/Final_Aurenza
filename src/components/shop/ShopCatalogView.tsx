@@ -89,7 +89,7 @@ export const ShopCatalogView: React.FC<ShopCatalogViewProps> = ({
           parseFloat(a.priceRange.minVariantPrice.amount)
       );
     } else if (sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
 
     return result;

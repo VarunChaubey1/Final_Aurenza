@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Truck, Check, Sparkles, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Truck, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
-import { createShopifyCheckout } from '../../services/shopifyCheckout';
 
 interface CartDrawerProps {
   onNavigateShop: () => void;
@@ -15,39 +13,30 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
     setIsCartOpen,
     removeFromCart,
     updateQuantity,
-    clearCart,
     totalQuantity,
     subtotal,
     discountCode,
-    applyDiscountCode,
-    discountAmount,
-    finalTotal,
+    setDiscountCode,
     freeShippingThreshold,
     amountNeededForFreeShipping,
-    openCheckout,
+    checkout,
+    isCheckingOut,
   } = useCart();
-  const { user, openAuthModal } = useAuth();
 
-  const [inputCode, setInputCode] = useState('');
-  const [promoMessage, setPromptMessage] = useState<{ success?: boolean; text: string } | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [inputCode, setInputCode] = useState(discountCode);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   if (!isCartOpen) return null;
 
   const handleApplyCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputCode) return;
-    const res = applyDiscountCode(inputCode);
-    setPromptMessage({ success: res.success, text: res.message });
+    setDiscountCode(inputCode);
   };
 
-  const handleCheckout = () => {
-    setIsCartOpen(false);
-    if (!user) {
-      openAuthModal('login');
-    } else {
-      openCheckout();
-    }
+  const handleCheckout = async () => {
+    setCheckoutError(null);
+    const err = await checkout();
+    if (err) setCheckoutError(err);
   };
 
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
@@ -200,30 +189,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
                 </button>
               </form>
 
-              {promoMessage && (
-                <div
-                  className={`text-xs p-2 rounded-lg ${
-                    promoMessage.success
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                  }`}
-                >
-                  {promoMessage.text}
+              {discountCode && (
+                <div className="text-xs p-2 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-between">
+                  <span>Code <strong>{discountCode}</strong> will be applied at checkout.</span>
+                  <button type="button" onClick={() => { setDiscountCode(''); setInputCode(''); }} className="underline">Remove</button>
+                </div>
+              )}
+
+              {checkoutError && (
+                <div className="text-xs p-2 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                  {checkoutError}
                 </div>
               )}
 
               {/* Price Calculations */}
               <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between text-[#6B7280]">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-700 font-semibold">
-                    <span>Discount ({discountCode})</span>
-                    <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-[#6B7280]">
                   <span>Shipping</span>
                   <span>
@@ -235,26 +215,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
                   </span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-[#2F5D50] dark:text-[#E5B35C] pt-2 border-t border-[#2F5D50]/10">
-                  <span>Total Amount</span>
-                  <span>₹{finalTotal.toLocaleString('en-IN')}</span>
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
+                <p className="text-[10px] text-[#6B7280]">Taxes, discounts and final shipping are calculated at checkout.</p>
               </div>
 
               {/* Checkout CTA */}
               <button
                 id="btn-cart-checkout"
                 onClick={handleCheckout}
-                disabled={isRedirecting}
+                disabled={isCheckingOut}
                 className="w-full bg-[#D6A34A] text-[#1F1F1F] py-4 rounded-2xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 hover:bg-[#c4923b] shadow-lg transition-all disabled:opacity-75"
               >
-                {isRedirecting ? (
+                {isCheckingOut ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-[#1F1F1F]" />
                     <span>Redirecting to Secure Payment...</span>
                   </>
                 ) : (
                   <>
-                    <span>Proceed to Express Checkout</span>
+                    <span>Proceed to Checkout</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -267,7 +248,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigateShop }) => {
                 </span>
                 <span className="flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5 text-[#D6A34A]" />
-                  COD Verified
+                  Secure Shopify Checkout
                 </span>
               </div>
             </div>

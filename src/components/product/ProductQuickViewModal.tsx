@@ -86,11 +86,13 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
               <span className="font-semibold uppercase tracking-widest text-[#D6A34A]">
                 {product.subcategory}
               </span>
-              <div className="flex items-center gap-1 text-[#D6A34A] font-bold">
-                <Star className="w-4 h-4 fill-[#D6A34A]" />
-                <span>{typeof product.rating === 'number' ? Number(product.rating).toFixed(1) : product.rating}</span>
-                <span className="text-[#6B7280]">({product.reviewsCount} reviews)</span>
-              </div>
+              {typeof product.rating === 'number' && (
+                <div className="flex items-center gap-1 text-[#D6A34A] font-bold">
+                  <Star className="w-4 h-4 fill-[#D6A34A]" />
+                  <span>{product.rating.toFixed(1)}</span>
+                  {product.reviewsCount ? <span className="text-[#6B7280]">({product.reviewsCount} reviews)</span> : null}
+                </div>
+              )}
             </div>
 
             {/* Title */}
